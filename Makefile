@@ -1,8 +1,18 @@
-# Every project exposes the same three targets so judges and CI run it the same way.
-.PHONY: run test lint
-run:
-	@echo "Replace with the one command that starts the project" && exit 1
+# One command for judges and CI. BATCH is a JSONL/JSON/text list of organisation numbers.
+BATCH ?= data-cache/dev-100.jsonl
+COUNT ?= $(shell grep -c . $(BATCH))
+BULK ?= data-cache/brreg-enheter.csv.gz
+RUN_ID ?= local-$(shell date +%Y%m%d-%H%M%S)
+.PHONY: setup run test lint
+setup:
+	uv sync --frozen
+	mkdir -p data-cache
+	test -f $(BULK) || curl -fL 'https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv' -o $(BULK)
+run: setup
+	uv run python scripts/run_signalpost.py --organisations $(BATCH) --bulk $(BULK) \
+	  --profiles-output out/$(RUN_ID)-profiles.jsonl --output out/$(RUN_ID)-envelopes.jsonl \
+	  --report out/$(RUN_ID)-report.json --run-id $(RUN_ID) --expected-count $(COUNT)
 test:
-	@echo "no tests yet"
+	uv run --with pytest pytest -q
 lint:
-	@echo "no linter yet"
+	uv run python -m compileall -q src scripts

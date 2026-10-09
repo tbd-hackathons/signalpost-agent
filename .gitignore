@@ -11,3 +11,7 @@ build/
 data/
 *.db
 *.log
+data-cache/
+out/
+.venv/
+.pytest_cache/
