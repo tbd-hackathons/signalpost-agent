@@ -123,3 +123,25 @@ def test_town_inside_the_name_is_not_place_proof():
                                              "forretningsadresse.adresse": "Gaustadalléen 21", "forretningsadresse.postnummer": "0349"})
     assert place_proof(p, "Oslo Science City – fremtiden skapes i Oslo") is None
     assert place_proof(p, "Oslo Science City, Gaustadalléen 21, 0349 Oslo")
+
+
+def test_deeper_proof_reads_contact_page_for_org_number(monkeypatch):
+    from norway_company_agent import site_intel
+    from norway_company_agent.site_discovery import _deeper_proof
+
+    class FakeFetcher:
+        requests, bytes, latencies_ms = 0, 0, []
+
+        def get(self, url):
+            self.requests += 1
+            body = b"<html><body>Friluftscamp AS - org.nr. 912 345 678</body></html>" if "om-oss" in url else b"<html></html>"
+            return body, url, "text/html"
+
+    monkeypatch.setattr(site_intel, "SiteFetcher", FakeFetcher)
+    profile = {"organisation_number": "912345678", "name": "FRILUFTSCAMP AS", "evidence": {}}
+    value = {"final_url": "https://friluftscamp.no/", "site_links": [{"url": "https://friluftscamp.no/om-oss/", "text": "Om oss"}]}
+    metrics = {"requests": 0, "bytes": 0, "latencies_ms": []}
+    assert "organisation number" in _deeper_proof(profile, value, metrics)
+    assert metrics["requests"] == 1
+    profile["organisation_number"] = "987654321"
+    assert _deeper_proof(profile, value, metrics) is None

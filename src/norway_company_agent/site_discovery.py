@@ -70,6 +70,50 @@ def _accept_domain_handles(value: dict[str, Any], legal_name: str = "") -> None:
     _publish_socials(value)
 
 
+CONTACT_LINK = re.compile(r"(?i)(kontakt|contact|om-oss|om_oss|omoss|\bom oss\b|about|hvem-er-vi|firmainfo|impressum)")
+
+
+def _deeper_proof(profile: dict[str, Any], value: dict[str, Any], metrics: dict[str, Any]) -> str | None:
+    """Look for proof on up to two contact/about pages of the same site (robots.txt respected).
+
+    Used only for a near-miss: the domain spells the legal name and the homepage shows it, but the homepage
+    has no organisation number, registry contact or registered place. The proof rules are unchanged.
+    """
+    from bs4 import BeautifulSoup
+
+    from .site_intel import SiteFetcher, registered_domain
+
+    home = value.get("final_url") or ""
+    domain = registered_domain(home)
+    urls = [l["url"] for l in value.get("site_links") or []
+            if registered_domain(l["url"]) == domain and (CONTACT_LINK.search(l["url"]) or CONTACT_LINK.search(l.get("text") or ""))]
+    if not urls:
+        base = "{0.scheme}://{0.netloc}".format(urllib.parse.urlparse(home))
+        urls = [base + "/kontakt", base + "/om-oss"]
+    fetcher = SiteFetcher()
+    org = str(profile["organisation_number"])
+    found = None
+    for url in list(dict.fromkeys(urls))[:2]:
+        try:
+            raw, final_url, ctype = fetcher.get(url)
+        except Exception:
+            continue
+        if "html" not in ctype.lower() or registered_domain(final_url) != domain:
+            continue
+        text = BeautifulSoup(raw.decode("utf-8", errors="replace"), "lxml").get_text(" ", strip=True)
+        if org in re.sub(r"\D", "", text) and re.search(r"\b" + r"\s?".join([org[:3], org[3:6], org[6:]]) + r"\b", text):
+            found = f"exact organisation number appears on {final_url}"
+        else:
+            proof = contact_proof(profile, text) or place_proof(profile, text)
+            found = f"{proof} ({final_url})" if proof else None
+        if found:
+            break
+    metrics["requests"] += fetcher.requests
+    metrics["bytes"] += fetcher.bytes
+    metrics["latencies_ms"] += fetcher.latencies_ms
+    return found
+
+
 DECLARED_SOURCES = {"registry_website", "organisation_number_keyed_source"}
 STRONG_OWN_REASONS = {"organisation number on the homepage", "domain name spells the legal name"}
 
@@ -126,6 +170,8 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
             if not org_on_page and not proof and assessment.get("score", 0) >= 0.95:
                 # Full legal name on the homepage plus the registered town is enough for a guessed domain.
                 proof = place_proof(profile, _page_text(value))
+            if not org_on_page and not proof and assessment.get("score", 0) >= 0.95:
+                proof = _deeper_proof(profile, value, metrics)
             accept = org_on_page or bool(proof)
         else:
             accept = bool(assessment.get("publishable")) or bool(proof)
