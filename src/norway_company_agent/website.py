@@ -186,6 +186,18 @@ def normalize_social_url(url: str) -> dict[str, str] | None:
     return {"platform": platform, "url": f"https://{canonical_host}/{'/'.join(parts)}"}
 
 
+def _site_links(base_url: str, soup: BeautifulSoup, limit: int = 400) -> list[dict[str, str]]:
+    """Homepage links with their text, kept so later steps (careers, news) need no second homepage fetch."""
+    seen: dict[str, dict[str, str]] = {}
+    for anchor in soup.select("a[href]"):
+        url = urllib.parse.urljoin(base_url, str(anchor.get("href") or "").strip()).split("#")[0]
+        if urllib.parse.urlparse(url).scheme in {"http", "https"} and url not in seen:
+            seen[url] = {"url": url, "text": anchor.get_text(" ", strip=True)[:160]}
+        if len(seen) >= limit:
+            break
+    return list(seen.values())
+
+
 def _priority_links(base_url: str, soup: BeautifulSoup, limit: int = 4) -> list[str]:
     base = urllib.parse.urlparse(base_url)
     candidates: dict[str, int] = {}
@@ -300,6 +312,7 @@ def fetch_website(url: str | None, *, timeout: float = 15.0, max_bytes: int = 2_
             "structured_organisations": _jsonld_organisations(structured),
             "content_sha256": __import__("hashlib").sha256(raw).hexdigest(),
             "extraction_state": _extraction_state(text, soup),
+            "site_links": _site_links(final_url, soup),
         }
         pages = [{"url": final_url, "title": title[:500], "main_text_excerpt": text[:5000], "content_sha256": value["content_sha256"]}]
         social = value["social_links"]
