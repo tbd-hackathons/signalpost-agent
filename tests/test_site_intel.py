@@ -96,3 +96,4 @@ def test_post_filters_drop_attachments_archives_and_other_locales():
     assert not post_allowed("https://sprakreisebyraet.no/slide/blog/blog-temp-image3/", "blog-temp-image3", "")
     assert not post_allowed("https://firma.no/nyheter/administrasjon", "Administrasjon Arkiver - Firma AS", "")
     assert post_allowed("https://firma.no/nyheter/nytt-lokale", "Nytt lokale", "")
+    assert not post_allowed("https://firma.no/hello-world/", "Hello world!", "")

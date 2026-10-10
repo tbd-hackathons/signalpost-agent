@@ -133,7 +133,7 @@ def _feed_date(value: str) -> str | None:
 
 
 JUNK_POST_TITLE = re.compile(r"(?i)(\barkiv(er)?\b|\barchives?\b|^blog-temp|\bimage-?\d|\bkategori\b|\bcategory\b|\buntitled\b|"
-                             r"\bside ikke funnet\b|\bpage not found\b|^404\b)")
+                             r"\bside ikke funnet\b|\bpage not found\b|^404\b|^hello world!?$|^hei verden!?$|^sample page$|^eksempelside$)")
 JUNK_POST_PATH = re.compile(r"(?i)/(slide|attachment|category|kategori|tag|tags|author|forfatter|wp-content|feed)/")
 LOCALE_SEGMENT = re.compile(r"^[a-z]{2}([-_][a-z]{2})?$", re.I)
 
