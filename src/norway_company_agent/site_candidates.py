@@ -96,6 +96,12 @@ def guessed_domains(name: str) -> list[str]:
         guesses.append(f"{'-'.join(tokens)}.no")
     if tokens[-1] in GENERIC and len(tokens) > 1:
         guesses.append(f"{''.join(tokens[:-1])}.no")
+    if "å" in name.casefold():  # å is written "aa" as often as "a" in Norwegian domains
+        alt = "".join(re.findall(r"[a-z0-9]+", _fold(name.casefold().replace("å", "aa"))))
+        alt = "".join(t for t in re.findall(r"[a-z0-9]+", _fold(" ".join(
+            w for w in name.casefold().replace("å", "aa").split() if _fold(w) not in LEGAL_SUFFIX)))) or alt
+        guesses.append(f"{alt}.no")
+    guesses.append(f"{joined}.com")
     return list(dict.fromkeys(guesses))
 
 
