@@ -72,12 +72,17 @@ def _accept_domain_handles(value: dict[str, Any], legal_name: str = "") -> None:
         if own_domain and label in handle:
             item.update(publishable=True, identity_score=0.95, method="verified_domain_name_in_handle_v1",
                         reason=f"handle contains the verified website's domain name '{label}'")
+        elif own_domain and CHANNEL_ID_PATH.match(urllib.parse.urlparse(item["url"]).path):
+            # A bare channel id carries no name; on a site whose domain spells the legal name, the site's own link is the proof.
+            item.update(publishable=True, identity_score=0.9, method="channel_id_linked_from_named_site_v1",
+                        reason=f"channel linked from the company's own site '{domain}', whose domain spells the legal name")
         elif distinctive and distinctive in handle:
             item.update(publishable=True, identity_score=0.92, method="distinctive_name_word_in_handle_v1",
                         reason=f"handle contains the legal name's distinctive word '{distinctive}'")
     _publish_socials(value)
 
 
+CHANNEL_ID_PATH = re.compile(r"^/channel/UC[\w-]{22}/?$")
 GENERIC_HANDLE_WORDS = {
     "borettslag", "boligsameie", "eiendom", "eiendommer", "barnehage", "byggmester", "entreprenor", "regnskap",
     "regnskapskontor", "transport", "elektro", "installasjon", "consulting", "holding", "invest", "investering",

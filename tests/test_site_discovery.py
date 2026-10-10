@@ -115,6 +115,16 @@ def test_handle_with_distinctive_legal_name_word_publishes_but_parent_handle_doe
     assert value["social_links"] == [{"platform": "facebook", "url": "https://facebook.com/ByggmesterGresseth"}]
 
 
+def test_channel_id_link_publishes_only_from_a_site_named_after_the_company():
+    link = {"platform": "youtube", "url": "https://youtube.com/channel/UCiZnrzRl72p7wpDma5v6lgQ", "publishable": False}
+    own = {"registered_domain": "llentab.no", "social_link_assessments": [dict(link)]}
+    site_discovery._accept_domain_handles(own, "LLENTAB AS")
+    assert own["social_links"] == [{"platform": "youtube", "url": link["url"]}]
+    parent = {"registered_domain": "akvagroup.com", "social_link_assessments": [dict(link)]}
+    site_discovery._accept_domain_handles(parent, "SPERRE AS")
+    assert not parent.get("social_links")
+
+
 def test_wikidata_site_is_tried_before_name_guesses(monkeypatch):
     p = profile()
     monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [
