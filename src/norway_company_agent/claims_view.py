@@ -47,6 +47,24 @@ def contract_view(profile: dict[str, Any]) -> dict[str, Any]:
                        "blocked" if website.get("status") == "blocked" else "not_available",
                        "confidence": None, "evidence_ids": []})
 
+    published_profiles = {link["url"].casefold().rstrip("/") for link in web.get("social_links") or []} \
+        if website.get("status") == "available" and assessment.get("publishable") else set()
+    wikidata = records.get("wikidata") or {}
+    for link in (wikidata.get("value") or {}).get("social_profiles") or []:
+        if link["url"].casefold().rstrip("/") in published_profiles:
+            continue
+        span = f"{wikidata['value']['identity_proof']}; {link['platform']} account '{link['handle']}'"
+        eid = cite(wikidata["source_url"], "open_data_wikidata", wikidata.get("retrieved_at"), wikidata.get("content_sha256"), span)
+        claims.append({"field": f"social_profile.{link['platform']}", "value": link["url"], "availability": "available",
+                       "confidence": 0.9, "evidence_ids": [eid], "found_by": "wikidata_organisation_number"})
+        observations.append({
+            "id": "wd:" + hashlib.sha256(f"{profile['organisation_number']}|{link['url']}".encode()).hexdigest()[:20],
+            "organisation_number": str(profile["organisation_number"]), "platform": link["platform"],
+            "signal_type": "profile_handle", "source_class": "open_data", "source_url": wikidata["source_url"],
+            "item_url": link["url"], "retrieved_at": wikidata.get("retrieved_at"), "content_sha256": wikidata.get("content_sha256"),
+            "exact_entity": True, "identity_proof": wikidata["value"]["identity_proof"], "acquisition_mode": "official_api",
+            "rights_status": "approved", "evidence_span": span, "value": link})
+
     activity = web.get("activity") or {}
     for obs in activity.get("observations") or []:
         if obs["signal_type"] == "job_posting":

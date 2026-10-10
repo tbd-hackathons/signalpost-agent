@@ -9,7 +9,10 @@ Rejected candidates are kept in `value.discovery.attempts` with the reason, neve
 """
 from __future__ import annotations
 
+import re
+import urllib.parse
 from collections import Counter
+from difflib import SequenceMatcher
 from typing import Any
 
 from .identity import apply_website_identity_gate
@@ -32,10 +35,58 @@ def _publish_socials(value: dict[str, Any]) -> None:
     ]
 
 
+def _fold(text: str) -> str:
+    text = text.casefold().replace("å", "aa").replace("ø", "o").replace("æ", "ae")
+    return re.sub(r"[^a-z0-9]", "", text)
+
+
+def _domain_is_legal_name(domain_label: str, legal_name: str) -> bool:
+    """The site's domain name spells the legal name (allowing å->aa and similar), not a parent or manager."""
+    name = _fold(re.sub(r"\b(as|asa|ans|da|sa|ba|ks|nuf|enk)\b", " ", legal_name.casefold()))
+    if not name:
+        return False
+    variants = {name, name.replace("aa", "a")}
+    label = {domain_label, domain_label.replace("aa", "a")}
+    return any(a == b or (len(b) >= 5 and b in a) or SequenceMatcher(None, a, b).ratio() >= 0.85
+               for a in label for b in variants)
+
+
+def _accept_domain_handles(value: dict[str, Any], legal_name: str = "") -> None:
+    """A profile whose handle contains the verified site's domain name is the company's own.
+
+    The legal-name rule misses brands written differently from the legal name, e.g. GLÅME AS ->
+    glaame.no -> facebook.com/glaame.no. The domain itself passed the identity gate, so its name is
+    as strong as the legal name. Short or generic domain names (under 5 letters) are not used.
+    """
+    domain = str(value.get("registered_domain") or "")
+    label = re.sub(r"[^a-z0-9]", "", domain.split(".")[0].casefold())
+    if len(label) < 5 or not _domain_is_legal_name(label, legal_name):
+        return
+    for item in value.get("social_link_assessments") or []:
+        handle = re.sub(r"[^a-z0-9]", "", urllib.parse.unquote(urllib.parse.urlparse(item["url"]).path).casefold())
+        if not item.get("publishable") and label in handle:
+            item.update(publishable=True, identity_score=0.95, method="verified_domain_name_in_handle_v1",
+                        reason=f"handle contains the verified website's domain name '{label}'")
+    _publish_socials(value)
+
+
 def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, max_candidates: int = 3,
-                    guess: bool = True) -> tuple[dict[str, Any], dict[str, Any]]:
+                    guess: bool = True, extra_websites: list[str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """`extra_websites`: sites an organisation-number-keyed source (Wikidata, NAV employer) records for this company."""
     metrics: dict[str, Any] = {"requests": 0, "bytes": 0, "latencies_ms": []}
-    candidates = website_candidates(profile, domain_counts, guess=guess)[:max_candidates]
+    candidates = website_candidates(profile, domain_counts, guess=guess)
+    hosts = {c["host"] for c in candidates}
+    for url in extra_websites or []:
+        host = (urllib.parse.urlparse(url if "://" in url else "https://" + url).hostname or "").casefold().removeprefix("www.")
+        if host and host not in hosts:
+            hosts.add(host)
+            # Ahead of name guesses, behind the registry's own website and e-mail domain.
+            position = sum(1 for c in candidates if c["source"] != "legal_name_domain_guess")
+            candidates.insert(position, {"url": url if "://" in url else "https://" + url, "host": host,
+                                         "source": "organisation_number_keyed_source",
+                                         "reason": "Wikidata or NAV records this website for the organisation number",
+                                         "requires_strict_proof": False})
+    candidates = candidates[:max_candidates]
     attempts: list[dict[str, Any]] = []
     fallback: dict[str, Any] | None = None
 
@@ -83,6 +134,7 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
                        score=assessment.get("score"), proof=proof)
         attempts.append(attempt)
         if accept:
+            _accept_domain_handles(value, profile.get("name") or "")
             value["discovery"] = {"selected": attempt, "attempts": attempts, "method": "site_discovery_v1"}
             site["value"] = value
             return site, metrics

@@ -20,6 +20,9 @@ from norway_company_agent.site_discovery import resolve_website  # noqa: E402
 from norway_company_agent.site_candidates import build_domain_counts  # noqa: E402
 from norway_company_agent.site_intel import site_intel_for  # noqa: E402
 from norway_company_agent.claims_view import contract_view  # noqa: E402
+from norway_company_agent.brief import build_brief  # noqa: E402
+from norway_company_agent.changes import changes_since  # noqa: E402
+from norway_company_agent.wikidata import WikidataIndex, wikidata_record  # noqa: E402
 from norway_company_agent.nav_jobs import NavDetailClient, NavJobIndex, catch_up, jobs_for_profile  # noqa: E402
 
 
@@ -47,11 +50,12 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--checkpoint-every", type=int, default=25)
     parser.add_argument("--resume", action="store_true")
-    parser.add_argument("--modules", default="registry,accounting_obligation,registry_live,financials,roles,group,locations,website,jobs")
+    parser.add_argument("--modules", default="registry,accounting_obligation,registry_live,financials,roles,group,locations,wikidata,website,jobs")
     parser.add_argument("--max-site-candidates", type=int, default=3)
     parser.add_argument("--no-domain-guess", action="store_true")
     parser.add_argument("--no-site-intel", dest="site_intel", action="store_false", help="skip news/careers reading on verified sites")
     parser.add_argument("--max-site-posts", type=int, default=3)
+    parser.add_argument("--previous", help="profiles JSONL from an earlier run; envelopes then list what changed")
     parser.add_argument("--nav-cache", default=str(ROOT / "data-cache" / "nav-feed"), help="NAV active job-ad index directory")
     parser.add_argument("--nav-catch-up-pages", type=int, default=60, help="feed pages read for ads newer than the index")
     args = parser.parse_args()
@@ -68,9 +72,10 @@ def main() -> None:
             if key in annotations[profile["organisation_number"]]:
                 profile[key] = annotations[profile["organisation_number"]][key]
     requested_modules = [item.strip() for item in args.modules.split(",") if item.strip()]
-    fetch_modules = set(requested_modules) - {"registry", "accounting_obligation", "website", "jobs"}
+    fetch_modules = set(requested_modules) - {"registry", "accounting_obligation", "website", "jobs", "wikidata"}
     operations = {"requests": 0, "bytes": 0, "latencies_ms": []}
     domain_counts = build_domain_counts(args.bulk) if "website" in requested_modules else None
+    wikidata_index = WikidataIndex.load() if "wikidata" in requested_modules else None
     nav_index = NavJobIndex.load(args.nav_cache) if "jobs" in requested_modules else None
     nav_client = NavDetailClient() if nav_index else None
     nav_catch_up = None
@@ -87,9 +92,14 @@ def main() -> None:
         records, metrics = fetch_official_modules(profile["organisation_number"], fetch_modules)
         profile["evidence"].update(records)
         website_metrics = {"requests": 0, "bytes": 0, "latencies_ms": []}
+        if "wikidata" in requested_modules:
+            profile["evidence"]["wikidata"] = wikidata_record(profile, wikidata_index)
+        wikidata_sites = (profile["evidence"].get("wikidata", {}).get("value") or {}).get("websites") or []
+        nav_sites = nav_index.homepages(profile["organisation_number"]) if nav_index else []
         if "website" in requested_modules:
             website_record, website_metrics = resolve_website(
-                profile, domain_counts, max_candidates=args.max_site_candidates, guess=not args.no_domain_guess)
+                profile, domain_counts, max_candidates=args.max_site_candidates, guess=not args.no_domain_guess,
+                extra_websites=wikidata_sites + nav_sites)
             profile["evidence"]["website"] = website_record
         intel, intel_metrics = None, {"requests": 0, "bytes": 0, "latencies_ms": []}
         if "website" in requested_modules and args.site_intel:
@@ -139,11 +149,21 @@ def main() -> None:
 
     completed_at = utc_now()
     ordered_profiles = [state[org] for org in orgs]
-    envelopes = [
-        {**terminal_envelope(profile, run_id=args.run_id, modules=requested_modules, started_at=started_at, completed_at=completed_at),
-         **contract_view(profile)}
-        for profile in ordered_profiles
-    ]
+    previous: dict[str, dict] = {}
+    if args.previous and Path(args.previous).exists():
+        for line in Path(args.previous).read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                previous[row["organisation_number"]] = row
+    envelopes = []
+    for profile in ordered_profiles:
+        envelope = terminal_envelope(profile, run_id=args.run_id, modules=requested_modules,
+                                     started_at=started_at, completed_at=completed_at)
+        envelope.update(contract_view(profile), brief=build_brief(profile))
+        prior = previous.get(profile["organisation_number"])
+        envelope["changes"] = changes_since(prior, profile) if prior else []
+        envelope["refresh"] = {"previous_run_found": bool(prior), "previous_completed_at": (prior or {}).get("completed_at")}
+        envelopes.append(envelope)
     validation = validate_envelopes(envelopes, args.expected_count)
     write_jsonl(profiles_output, ordered_profiles)
     write_jsonl(Path(args.output), envelopes)

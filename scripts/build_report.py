@@ -24,7 +24,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:8px;ma
 summary .n{font-weight:600}summary .o{color:var(--muted);font-size:13px}.tag{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line)}
 .tag.ok{color:var(--ok);border-color:var(--ok)}.tag.warn{color:var(--warn);border-color:var(--warn)}.tag.bad{color:var(--bad);border-color:var(--bad)}
 .body{padding:0 14px 12px;overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}td,th{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
-th{color:var(--muted);font-weight:500}a{color:var(--accent);word-break:break-all}
+th{color:var(--muted);font-weight:500}.brief{margin:4px 0 8px;max-width:75ch}.src{font-size:11px;text-decoration:none}.unk{color:var(--muted);font-size:13px}.tag.sig{color:var(--accent);border-color:var(--accent)}a{color:var(--accent);word-break:break-all}
 """
 
 
@@ -91,7 +91,19 @@ def main() -> None:
         for c in other:
             if c["availability"] == "failed":
                 tags.append(f'<span class="tag bad">{esc(c["field"])} not checked</span>')
-        body = ["<table><tr><th>Fact</th><th>Value</th><th>Source</th><th>Retrieved</th></tr>"]
+        brief = env.get("brief") or {}
+        body = []
+        if brief:
+            text = " ".join(
+                esc(sent["text"]) + "".join(f' <a class="src" href="{esc(u)}" target="_blank" rel="noopener">[{i + 1}]</a>'
+                                           for i, u in enumerate(sent.get("sources") or []))
+                for sent in brief.get("sentences") or [])
+            body.append(f'<p class="brief">{text}</p>')
+            if brief.get("signals"):
+                body.append('<p>' + " ".join(f'<span class="tag sig">{esc(x)}</span>' for x in brief["signals"]) + "</p>")
+            if brief.get("unknown"):
+                body.append(f'<p class="unk">Not found or not checked: {esc(", ".join(brief["unknown"]))}</p>')
+        body.append("<table><tr><th>Fact</th><th>Value</th><th>Source</th><th>Retrieved</th></tr>")
         for c in avail:
             ev = evidence.get((c.get("evidence_ids") or [None])[0]) or {}
             src = f'<a href="{esc(ev.get("source_url"))}" target="_blank" rel="noopener">{esc(ev.get("source_class"))}</a><br>{esc(ev.get("claim_span"))[:160]}' if ev else ""

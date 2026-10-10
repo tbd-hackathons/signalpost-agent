@@ -54,6 +54,7 @@ def ad_summary(detail: dict[str, Any], retrieved_at: str | None = None) -> dict[
         "status": detail.get("status"),
         "employer_orgnr": str(employer.get("orgnr")),
         "employer_name": employer.get("name"),
+        "employer_homepage": (employer.get("homepage") or "").strip() or None,
         "title": ad.get("title"),
         "job_title": ad.get("jobtitle"),
         "published": ad.get("published"),
@@ -86,9 +87,10 @@ class NavJobIndex:
     """Active ads keyed by employer organisation number, plus new feed entries keyed by employer name."""
 
     def __init__(self, by_orgnr: dict[str, list[dict[str, Any]]], built_at: str | None,
-                 new_entries_by_name: dict[str, list[dict[str, Any]]] | None = None) -> None:
+                 new_entries_by_name: dict[str, list[dict[str, Any]]] | None = None, complete: bool = True) -> None:
         self.by_orgnr = by_orgnr
         self.built_at = built_at
+        self.complete = complete
         self.new_entries_by_name = new_entries_by_name or {}
 
     @classmethod
@@ -103,7 +105,12 @@ class NavJobIndex:
             for line in handle:
                 row = json.loads(line)
                 by_orgnr[row["employer_orgnr"]].append(row)
-        return cls(dict(by_orgnr), meta.get("built_at"))
+        return cls(dict(by_orgnr), meta.get("built_at"), complete=not meta.get("partial"))
+
+    def homepages(self, organisation_number: str) -> list[str]:
+        """Homepages employers gave NAV under this exact organisation number (website leads, not facts)."""
+        return list(dict.fromkeys(ad["employer_homepage"] for ad in self.by_orgnr.get(str(organisation_number), [])
+                                  if ad.get("employer_homepage")))
 
     def candidates(self, orgnrs: set[str], names: set[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         known = [ad for org in sorted(orgnrs) for ad in self.by_orgnr.get(org, [])]
@@ -217,6 +224,9 @@ def jobs_for_profile(profile: dict[str, Any], index: NavJobIndex | None, fetch_d
         return evidence("jobs", "available", "nav_public_job_feed", source, value=value,
                         note="Active ads on arbeidsplassen.nav.no (NAV), matched by employer organisation number, "
                              "plus ads listed on the verified company website"), metrics
+    if index is not None and not index.complete:
+        return evidence("jobs", "source_error", "nav_public_job_feed", FEED_HOME, value=value,
+                        note="NAV job-ad index is incomplete for this run; absence of ads is not asserted"), metrics
     if any(c["outcome"] == "recheck_failed" for c in checked):
         return evidence("jobs", "source_error", "nav_public_job_feed", FEED_HOME, value=value,
                         note="NAV could not confirm matched ads during this run; none published"), metrics

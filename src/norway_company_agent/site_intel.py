@@ -372,16 +372,48 @@ class SiteIntel:
         }
 
 
+def own_site_reason(profile: dict[str, Any], value: dict[str, Any]) -> str | None:
+    """Why this verified website is the company's *own* site, not a manager's, accountant's or parent's.
+
+    The registry often links a condominium or housing co-operative to its manager's site, and a
+    subsidiary to its parent's. Such a site is a fine website fact, but its job ads and news belong to
+    the other company, so activity is attributed only when one of these holds.
+    """
+    from .site_discovery import _domain_is_legal_name, _fold
+
+    assessment = value.get("identity_assessment") or {}
+    if assessment.get("score") == 1.0:
+        return "organisation number on the homepage"
+    label = re.sub(r"[^a-z0-9]", "", str(value.get("registered_domain") or "").split(".")[0].casefold())
+    if len(label) >= 4 and _domain_is_legal_name(label, profile.get("name") or ""):
+        return "domain name spells the legal name"
+    words = [_fold(w) for w in re.sub(r"\b(as|asa|ans|da|sa|ba|ks|nuf|enk)\b", " ", str(profile.get("name") or "").casefold()).split()]
+    words = [w for w in words if w]
+    name = "".join(words)
+    if len(name) >= 5 and name in _fold(value.get("title") or ""):
+        return "full legal name in the page title"
+    if len(words) >= 2 and len(label) >= 5 and any(label == "".join(words[:k]) for k in range(2, len(words))):
+        return "domain name spells the start of the legal name"
+    # Registry contact details on the site are not enough here: a group often shares one mailbox.
+    return None
+
+
 def site_intel_for(profile: dict[str, Any], website: dict[str, Any], *, max_posts: int = 3) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    """Run SiteIntel when the website is published; return (result or None, metrics)."""
+    """Run SiteIntel when the website is published and is the company's own; return (result or None, metrics)."""
     value = website.get("value") or {}
     if website.get("status") != "available" or not (value.get("identity_assessment") or {}).get("publishable"):
         return None, {"requests": 0, "bytes": 0, "latencies_ms": []}
+    own = own_site_reason(profile, value)
+    if not own:
+        return ({"posts": [], "jobs": [], "observations": [], "errors": [], "method": "site_intel_v1",
+                 "skipped": "verified link, but the site looks like a manager's or parent's: its jobs and posts are not attributed"},
+                {"requests": 0, "bytes": 0, "latencies_ms": []})
     intel = SiteIntel(max_posts=max_posts)
     try:
         result = intel.collect(profile, website)
     except Exception as exc:
         result = {"posts": [], "jobs": [], "observations": [], "errors": [f"{type(exc).__name__}: {str(exc)[:160]}"],
                   "method": "site_intel_v1"}
+    result["own_site"] = own
     f = intel.fetcher
     return result, {"requests": f.requests, "bytes": f.bytes, "latencies_ms": f.latencies_ms}

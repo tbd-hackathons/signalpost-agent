@@ -59,3 +59,14 @@ def test_site_jobs_merge_without_double_counting_nav():
                                  site_jobs=site_jobs, site_observations=[{"item_url": site_jobs[0]["url"]}])
     assert record["status"] == "available" and record["value"]["active_job_count"] == 1
     assert record["value"]["company_site_postings"][0]["url"].endswith("1-elektriker")
+
+
+def test_activity_only_from_the_companys_own_site():
+    from norway_company_agent.site_intel import own_site_reason
+    def value(domain, title="", score=0.95):
+        return {"registered_domain": domain, "title": title, "identity_assessment": {"score": score}}
+    assert own_site_reason({"name": "CARGONET AS"}, value("cargonet.no"))
+    assert own_site_reason({"name": "BLOMEN HAGE OG LANDSKAP AS"}, value("blomenhage.no"))
+    assert own_site_reason({"name": "TREDJE BOLIGSEKTOR AS"}, value("hellvikhage.no", "Shared Living - Tredje Boligsektor AS"))
+    assert own_site_reason({"name": "MIDTUNKRAFT AS"}, value("clemenskraft.no", "Home | Clemens Kraft", 0.97)) is None
+    assert own_site_reason({"name": "SAMEIET WALDEMAR THRANESGATE 40"}, value("ecitnorian.com", "Ecit Norian")) is None

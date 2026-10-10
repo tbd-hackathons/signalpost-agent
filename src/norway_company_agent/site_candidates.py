@@ -152,8 +152,14 @@ def place_proof(profile: dict[str, Any], text: str) -> str | None:
     street = " ".join(re.findall(r"[a-z0-9]+", _fold(raw.get("forretningsadresse.adresse") or "")))
     if street and len(street) >= 6 and street in folded:
         return "registered street address appears on the site"
+    postcode = str(raw.get("forretningsadresse.postnummer") or "").strip()
+    if len(postcode) == 4 and re.search(rf"(?<!\d){postcode}(?!\d)", folded):
+        return f"registered postcode {postcode} appears on the site"
+    name = " ".join(name_tokens(profile.get("name") or ""))
     for key in ("forretningsadresse.poststed", "postadresse.poststed", "forretningsadresse.kommune"):
         town = " ".join(re.findall(r"[a-z0-9]+", _fold(raw.get(key) or "")))
+        if re.search(rf"(?<![a-z0-9]){re.escape(town)}(?![a-z0-9])", name):
+            continue  # the town is part of the name ("Oslo Science City"): finding it proves nothing more
         if len(town) >= 3 and re.search(rf"(?<![a-z0-9]){re.escape(town)}(?![a-z0-9])", folded):
             return f"registered {key.split('.')[-1]} '{town}' appears on the site with the full legal name"
     return None

@@ -86,3 +86,10 @@ def test_failed_recheck_is_a_source_error_not_zero():
 
     record, _ = jobs_for_profile(profile(), idx, down, today=TODAY)
     assert record["status"] == "source_error" and record["value"]["active_job_count"] == 0
+
+
+def test_incomplete_index_never_asserts_no_jobs():
+    idx = index()
+    idx.complete = False
+    record, _ = jobs_for_profile(profile(), idx, lambda uuid: {}, today=TODAY)
+    assert record["status"] == "source_error"

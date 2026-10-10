@@ -89,3 +89,37 @@ def test_guessed_domain_with_org_number_publishes(monkeypatch):
                         lambda url=None, **k: (site("Spind Eiendom AS, org.nr 987 654 321"), {"requests": 1}))
     record, _ = site_discovery.resolve_website(p, Counter())
     assert record["value"]["identity_assessment"]["publishable"]
+
+
+def test_handles_named_after_verified_domain_publish():
+    value = {"registered_domain": "glaame.no", "social_link_assessments": [
+        {"platform": "facebook", "url": "https://facebook.com/glaame.no", "publishable": False},
+        {"platform": "facebook", "url": "https://facebook.com/someoneelse", "publishable": False}]}
+    site_discovery._accept_domain_handles(value, "GLÅME AS")
+    assert value["social_links"] == [{"platform": "facebook", "url": "https://facebook.com/glaame.no"}]
+
+
+def test_manager_domain_handles_are_not_credited_to_the_client():
+    value = {"registered_domain": "bonord.no", "social_link_assessments": [
+        {"platform": "linkedin", "url": "https://linkedin.com/company/bonord", "publishable": False}]}
+    site_discovery._accept_domain_handles(value, "ALASKASVINGEN BORETTSLAG")
+    assert not value.get("social_links")
+
+
+def test_wikidata_site_is_tried_before_name_guesses(monkeypatch):
+    p = profile()
+    monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [
+        {"url": "https://vinsnesbakkelektro.no/", "host": "vinsnesbakkelektro.no",
+         "source": "legal_name_domain_guess", "reason": "guess", "requires_strict_proof": True}])
+    tried = []
+    monkeypatch.setattr(site_discovery, "fetch_website",
+                        lambda url=None, **k: (tried.append(url), ({"status": "not_found"}, {}))[1])
+    site_discovery.resolve_website(p, Counter(), extra_websites=["https://www.vbe.no"])
+    assert tried[0] == "https://www.vbe.no"
+
+
+def test_town_inside_the_name_is_not_place_proof():
+    p = profile(name="OSLO SCIENCE CITY", **{"forretningsadresse.poststed": "OSLO", "forretningsadresse.kommune": "OSLO",
+                                             "forretningsadresse.adresse": "Gaustadalléen 21", "forretningsadresse.postnummer": "0349"})
+    assert place_proof(p, "Oslo Science City – fremtiden skapes i Oslo") is None
+    assert place_proof(p, "Oslo Science City, Gaustadalléen 21, 0349 Oslo")
