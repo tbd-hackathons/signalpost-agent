@@ -46,6 +46,18 @@ builds it, about an hour). During a run it is only a starting list: the run read
 than the index, and re-checks every matched ad with NAV before publishing it. Without the cache the jobs
 field reports `failed`, never zero.
 
+## Optional local model (off by default)
+
+`--llm-model PATH` lets a small open-weight model (Qwen2.5-1.5B-Instruct, Apache-2.0, 4-bit GGUF, about 1.1 GB,
+CPU only via llama.cpp; install with `uv sync --extra llm`) read careers pages that have no structured job data.
+Every title it returns must occur on the page, appear as a heading or in a hiring sentence, and pass a second
+yes/no check, or it is dropped.
+
+Measured on 46 saved careers pages labelled by hand: 15 correct job titles, 22 wrong items (job categories,
+service names, subsidiaries), 4 missed; median 6.5 s per page on an M1. That precision is too low for a
+submission scored on precision, so the model stays off in our runs. The test is reproducible with
+`scripts/collect_career_pages.py` and `scripts/eval_local_model.py`.
+
 ## Cost to run
 
 No paid APIs and no model calls in this version: third-party cost per official run is US$0.

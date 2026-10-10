@@ -210,9 +210,11 @@ def _name_tokens(name: str) -> set[str]:
 
 
 class SiteIntel:
-    def __init__(self, fetcher: SiteFetcher | None = None, *, max_posts: int = 3, max_career_pages: int = 1) -> None:
+    def __init__(self, fetcher: SiteFetcher | None = None, *, max_posts: int = 3, max_career_pages: int = 1,
+                 extractor: Any = None) -> None:
         self.fetcher = fetcher or SiteFetcher()
         self.max_posts, self.max_career_pages = max_posts, max_career_pages
+        self.extractor = extractor  # optional llm_extract.LocalExtractor
 
     def _html(self, url: str, domain: str) -> tuple[BeautifulSoup, dict[str, Any], str, str] | None:
         raw, final_url, ctype = self.fetcher.get(url)
@@ -323,16 +325,25 @@ class SiteIntel:
                 href = urllib.parse.urljoin(final_url, str(anchor.get("href") or ""))
                 if is_ats_ad(href):
                     ats_links.setdefault(href, anchor.get_text(" ", strip=True))
+            before = len(result["jobs"])
             for href, text in ats_links.items():
                 if text and len(text) >= 4:
                     result["jobs"].append({"title": text[:300], "url": href, "found_by": "careers_page_link_to_recruiting_system",
                                            "listed_on": final_url, "retrieved_at": utc_now(), "content_sha256": sha})
             ats_links = {}
+            if self.extractor is not None and len(result["jobs"]) == before:
+                from .llm_extract import page_blocks
+                page_text, standalone = page_blocks(str(soup))
+                for job in self.extractor.jobs(page_text, standalone):
+                    result["jobs"].append({**job, "url": final_url, "found_by": "local_model_verbatim_v1",
+                                           "model": getattr(self.extractor, "model_id", None),
+                                           "listed_on": final_url, "retrieved_at": utc_now(), "content_sha256": sha})
         seen = set()
         jobs = []
         for job in result["jobs"]:
-            if job["url"] not in seen:
-                seen.add(job["url"])
+            key = (job["url"], job["title"].casefold())
+            if key not in seen:
+                seen.add(key)
                 jobs.append(job)
         result["jobs"] = jobs
         for job in jobs:
@@ -351,7 +362,7 @@ class SiteIntel:
     @staticmethod
     def _observation(profile: dict[str, Any], platform: str, signal: str, item: dict[str, Any], span: str,
                      proof: str) -> dict[str, Any]:
-        key = f"{profile['organisation_number']}|{signal}|{item['url']}"
+        key = f"{profile['organisation_number']}|{signal}|{item['url']}|{item.get('title') or ''}"
         return {
             "id": "site:" + hashlib.sha256(key.encode()).hexdigest()[:20],
             "organisation_number": str(profile["organisation_number"]),
@@ -398,7 +409,8 @@ def own_site_reason(profile: dict[str, Any], value: dict[str, Any]) -> str | Non
     return None
 
 
-def site_intel_for(profile: dict[str, Any], website: dict[str, Any], *, max_posts: int = 3) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+def site_intel_for(profile: dict[str, Any], website: dict[str, Any], *, max_posts: int = 3,
+                   extractor: Any = None) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     """Run SiteIntel when the website is published and is the company's own; return (result or None, metrics)."""
     value = website.get("value") or {}
     if website.get("status") != "available" or not (value.get("identity_assessment") or {}).get("publishable"):
@@ -408,7 +420,7 @@ def site_intel_for(profile: dict[str, Any], website: dict[str, Any], *, max_post
         return ({"posts": [], "jobs": [], "observations": [], "errors": [], "method": "site_intel_v1",
                  "skipped": "verified link, but the site looks like a manager's or parent's: its jobs and posts are not attributed"},
                 {"requests": 0, "bytes": 0, "latencies_ms": []})
-    intel = SiteIntel(max_posts=max_posts)
+    intel = SiteIntel(max_posts=max_posts, extractor=extractor)
     try:
         result = intel.collect(profile, website)
     except Exception as exc:

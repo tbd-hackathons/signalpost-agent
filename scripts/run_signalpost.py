@@ -55,6 +55,7 @@ def main() -> None:
     parser.add_argument("--no-domain-guess", action="store_true")
     parser.add_argument("--no-site-intel", dest="site_intel", action="store_false", help="skip news/careers reading on verified sites")
     parser.add_argument("--max-site-posts", type=int, default=3)
+    parser.add_argument("--llm-model", help="local GGUF model for unlabelled careers pages (needs `uv sync --extra llm`)")
     parser.add_argument("--previous", help="profiles JSONL from an earlier run; envelopes then list what changed")
     parser.add_argument("--nav-cache", default=str(ROOT / "data-cache" / "nav-feed"), help="NAV active job-ad index directory")
     parser.add_argument("--nav-catch-up-pages", type=int, default=60, help="feed pages read for ads newer than the index")
@@ -75,6 +76,10 @@ def main() -> None:
     fetch_modules = set(requested_modules) - {"registry", "accounting_obligation", "website", "jobs", "wikidata"}
     operations = {"requests": 0, "bytes": 0, "latencies_ms": []}
     domain_counts = build_domain_counts(args.bulk) if "website" in requested_modules else None
+    extractor = None
+    if args.llm_model:
+        from norway_company_agent.llm_extract import LocalExtractor
+        extractor = LocalExtractor(args.llm_model)
     wikidata_index = WikidataIndex.load() if "wikidata" in requested_modules else None
     nav_index = NavJobIndex.load(args.nav_cache) if "jobs" in requested_modules else None
     nav_client = NavDetailClient() if nav_index else None
@@ -103,7 +108,8 @@ def main() -> None:
             profile["evidence"]["website"] = website_record
         intel, intel_metrics = None, {"requests": 0, "bytes": 0, "latencies_ms": []}
         if "website" in requested_modules and args.site_intel:
-            intel, intel_metrics = site_intel_for(profile, profile["evidence"]["website"], max_posts=args.max_site_posts)
+            intel, intel_metrics = site_intel_for(profile, profile["evidence"]["website"], max_posts=args.max_site_posts,
+                                                   extractor=extractor)
             if intel is not None:
                 profile["evidence"]["website"]["value"]["activity"] = intel
         jobs_metrics = {"requests": 0, "bytes": 0, "latencies_ms": []}
@@ -181,6 +187,7 @@ def main() -> None:
         "modules": requested_modules,
         "registry": registry_metadata,
         "operations": operations,
+        "local_model": {"model": extractor.model_id, "calls": extractor.calls} if extractor else None,
         "nav_jobs": {"index_built_at": nav_index.built_at if nav_index else None, "catch_up": nav_catch_up},
         "validation": validation,
     }
