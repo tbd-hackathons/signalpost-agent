@@ -77,6 +77,20 @@ submission scored on precision, so the model stays off in our runs. The test is 
 No paid APIs and no model calls in this version: third-party cost per official run is US$0.
 Measured on 100 random companies: ~5 minutes, ~750 outbound requests.
 
+## Scorecard
+
+Measure a run the way the challenge scores it, then re-check a sample of its claims against the live sources:
+
+```bash
+uv run python scripts/scorecard.py --envelopes out/<run-id>-envelopes.jsonl \
+  --json out/<run-id>-scorecard.json --html out/<run-id>-scorecard.html --audit 60
+```
+
+It reports coverage per external field family (70% company recall, 30% claim recall), which discovery source
+found each website and why the other candidates were rejected, how many claims are `failed` rather than
+`not_available`, and the share of audited claims that still reproduce when the source is re-fetched. The
+audit sample is seeded, so the same run gives the same sample.
+
 ## Tests
 
 ```bash
@@ -88,7 +102,7 @@ make test
 Files written for this entry are MIT: `search-rs/`; in `src/norway_company_agent/`: `site_candidates.py`,
 `site_discovery.py`, `site_intel.py`, `nav_feed.py`, `nav_jobs.py`, `claims_view.py`, `brief.py`, `changes.py`,
 `wikidata.py`, `procurement.py`, `search_client.py`, `search_enrich.py`, `llm_extract.py`; in `scripts/`:
-`nav_active_index.py`, `wikidata_snapshot.py`, `ted_snapshot.py`, `build_report.py`, `fetch_search_bin.sh`,
-`collect_career_pages.py`, `eval_local_model.py`, and the `run_signalpost.py` changes; the tests for those
-files; `Makefile`, see [LICENSE](LICENSE). The rest of the code and the documents under `docs/` come from
+`nav_active_index.py`, `wikidata_snapshot.py`, `ted_snapshot.py`, `build_report.py`, `scorecard.py`,
+`fetch_search_bin.sh`, `collect_career_pages.py`, `eval_local_model.py`, and the `run_signalpost.py` changes;
+the tests for those files; `Makefile`, see [LICENSE](LICENSE). The rest of the code and the documents under `docs/` come from
 the Builderr Signalpost starter kit and are used under the challenge terms; they are not covered by the MIT license.
