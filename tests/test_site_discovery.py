@@ -106,6 +106,15 @@ def test_manager_domain_handles_are_not_credited_to_the_client():
     assert not value.get("social_links")
 
 
+def test_handle_with_distinctive_legal_name_word_publishes_but_parent_handle_does_not():
+    value = {"registered_domain": "gresseth.no", "social_link_assessments": [
+        {"platform": "facebook", "url": "https://facebook.com/ByggmesterGresseth", "publishable": False},
+        {"platform": "facebook", "url": "https://facebook.com/veidekke", "publishable": False},
+        {"platform": "facebook", "url": "https://facebook.com/byggmesterforbundet", "publishable": False}]}
+    site_discovery._accept_domain_handles(value, "BYGGMESTER IVER R. GRESSETH AS")
+    assert value["social_links"] == [{"platform": "facebook", "url": "https://facebook.com/ByggmesterGresseth"}]
+
+
 def test_wikidata_site_is_tried_before_name_guesses(monkeypatch):
     p = profile()
     monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [

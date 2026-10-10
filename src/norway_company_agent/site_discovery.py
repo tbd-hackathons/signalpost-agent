@@ -60,14 +60,31 @@ def _accept_domain_handles(value: dict[str, Any], legal_name: str = "") -> None:
     """
     domain = str(value.get("registered_domain") or "")
     label = re.sub(r"[^a-z0-9]", "", domain.split(".")[0].casefold())
-    if len(label) < 5 or not _domain_is_legal_name(label, legal_name):
-        return
+    own_domain = len(label) >= 5 and _domain_is_legal_name(label, legal_name)
+    # On a site that passed the identity gate, a handle carrying the legal name's most distinctive word
+    # (8+ letters, not a trade word) is the company's own, e.g. BYGGMESTER IVER R. GRESSETH -> ByggmesterGresseth.
+    words = [_fold(w) for w in re.findall(r"\w+", legal_name.casefold())]
+    distinctive = max((w for w in words if len(w) >= 8 and w not in GENERIC_HANDLE_WORDS), key=len, default="")
     for item in value.get("social_link_assessments") or []:
+        if item.get("publishable"):
+            continue
         handle = re.sub(r"[^a-z0-9]", "", urllib.parse.unquote(urllib.parse.urlparse(item["url"]).path).casefold())
-        if not item.get("publishable") and label in handle:
+        if own_domain and label in handle:
             item.update(publishable=True, identity_score=0.95, method="verified_domain_name_in_handle_v1",
                         reason=f"handle contains the verified website's domain name '{label}'")
+        elif distinctive and distinctive in handle:
+            item.update(publishable=True, identity_score=0.92, method="distinctive_name_word_in_handle_v1",
+                        reason=f"handle contains the legal name's distinctive word '{distinctive}'")
     _publish_socials(value)
+
+
+GENERIC_HANDLE_WORDS = {
+    "borettslag", "boligsameie", "eiendom", "eiendommer", "barnehage", "byggmester", "entreprenor", "regnskap",
+    "regnskapskontor", "transport", "elektro", "installasjon", "consulting", "holding", "invest", "investering",
+    "forvaltning", "utvikling", "tannlege", "tannhelse", "fysioterapi", "advokatfirma", "maskinentreprenor",
+    "byggservice", "rorleggerfirma", "rorlegger", "eiendomsmegling", "restaurant", "frisorsalong", "treningssenter",
+    "boligbyggelag", "forsikring", "logistikk", "teknologi", "technology", "solutions", "services", "management",
+}
 
 
 CONTACT_LINK = re.compile(r"(?i)(kontakt|contact|om-oss|om_oss|omoss|\bom oss\b|about|hvem-er-vi|firmainfo|impressum)")
