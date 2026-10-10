@@ -13,5 +13,7 @@ jobs:
           if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
             echo "A .env file is committed. Remove it and rotate its keys." && exit 1
           fi
+      - name: Install uv
+        run: python3 -m pip install --user "uv==0.8.13" && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: make lint
       - run: make test
