@@ -124,12 +124,15 @@ mod tests {
             times.push(h.await.unwrap());
         }
         times.sort();
-        for w in times.windows(2) {
-            // allow 5 ms of timer slack
+        // The guarantee: the i-th request never starts before start + i * interval.
+        // (Gaps between wake-ups can look shorter when one task wakes late on a
+        // busy machine; that is scheduler jitter, not a burst.)
+        for (i, t) in times.iter().enumerate() {
+            let earliest = start + Duration::from_millis(50 * i as u64);
             assert!(
-                w[1] - w[0] >= Duration::from_millis(45),
-                "gap {:?}",
-                w[1] - w[0]
+                *t + Duration::from_millis(1) >= earliest,
+                "request {i} started {:?} before its slot",
+                earliest - *t
             );
         }
         assert!(start.elapsed() >= Duration::from_millis(200));

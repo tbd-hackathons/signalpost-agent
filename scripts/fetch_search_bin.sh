@@ -1,7 +1,7 @@
 #!/bin/sh
 # Download the prebuilt signalpost-search binary for this platform and verify it against SHA256SUMS.
 set -eu
-TAG="${SEARCH_BIN_TAG:-search-rs-v0.2.0}"
+TAG="${SEARCH_BIN_TAG:-search-rs-v0.2.1}"
 BASE="https://github.com/tbd-hackathons/signalpost-agent/releases/download/$TAG"
 case "$(uname -s)-$(uname -m)" in
   Linux-x86_64) TARGET=x86_64-unknown-linux-musl ;;
