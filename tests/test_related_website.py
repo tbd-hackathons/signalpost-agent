@@ -33,3 +33,10 @@ def test_own_site_by_title_word_stays_official():
     fields = {c["field"]: c for c in view["claims"]}
     assert fields["official_website"]["availability"] == "available" and "related_website" not in fields
     assert any(c["field"] == "social_profile.facebook" for c in view["claims"])
+
+
+def test_declared_site_with_only_a_shared_name_word_is_related():
+    p = profile("DIABETESFORBUNDET KONGSBERG", "https://www.diabetes.no/", "diabetes.no", "Diabetesforbundet")
+    p["evidence"]["website"]["value"]["related_only"] = True
+    fields = {c["field"]: c for c in contract_view(p)["claims"]}
+    assert fields["official_website"]["availability"] == "ambiguous" and "related_website" in fields

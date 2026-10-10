@@ -497,6 +497,8 @@ def own_site_reason(profile: dict[str, Any], value: dict[str, Any]) -> str | Non
     """
     from .site_discovery import _domain_is_legal_name, _fold
 
+    if value.get("related_only"):
+        return None
     assessment = value.get("identity_assessment") or {}
     if assessment.get("score") == 1.0:
         return "organisation number on the homepage"

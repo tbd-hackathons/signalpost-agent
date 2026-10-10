@@ -70,6 +70,10 @@ def _accept_domain_handles(value: dict[str, Any], legal_name: str = "") -> None:
     _publish_socials(value)
 
 
+DECLARED_SOURCES = {"registry_website", "organisation_number_keyed_source"}
+STRONG_OWN_REASONS = {"organisation number on the homepage", "domain name spells the legal name"}
+
+
 def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, max_candidates: int = 3,
                     guess: bool = True, extra_websites: list[str] | None = None,
                     search_websites: list[str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -125,12 +129,23 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
             accept = org_on_page or bool(proof)
         else:
             accept = bool(assessment.get("publishable")) or bool(proof)
+            if not accept and cand["source"] in DECLARED_SOURCES and assessment.get("score", 0) >= 0.3:
+                # The company itself declared this site (registry entry) or an organisation-number-keyed source
+                # records it; that, plus a site that presents itself under the company's name, is enough.
+                from .site_intel import own_site_reason
+
+                own = own_site_reason(profile, value)
+                if own:
+                    accept, proof = True, f"declared for this organisation number ({cand['source']}), and {own}"
+                    if own not in STRONG_OWN_REASONS:
+                        # A parent, umbrella body or fund manager often shares the name words: publish as related.
+                        value["related_only"] = True
 
         if accept and not assessment.get("publishable"):
             # Contact proof upgrades an otherwise uncertain name match.
             assessment = {**assessment, "status": "exact", "score": 0.97, "publishable": True,
                           "reasons": [*assessment.get("reasons", []), proof],
-                          "method": "registry_contact_on_site_v1"}
+                          "method": "declared_site_named_v1" if str(proof).startswith("declared") else "registry_contact_on_site_v1"}
             value["identity_assessment"] = assessment
             _publish_socials(value)
         elif not accept and assessment.get("publishable"):
