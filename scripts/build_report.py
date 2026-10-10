@@ -26,8 +26,9 @@ FAMILIES = [
 ]
 
 CSS = """
-:root{--bg:#f6f6f3;--card:#fff;--ink:#1c1c1a;--muted:#6a6a64;--line:#e3e3dd;--ok:#1f7a4d;--warn:#a15c00;--bad:#a1262b;--accent:#2f5bd3;--bar:#dfe6fb}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131312;--card:#1d1d1b;--ink:#ecebe6;--muted:#9c9b94;--line:#33332f;--ok:#4cc38a;--warn:#e0a24a;--bad:#ef6b6f;--accent:#7d9cff;--bar:#27304d}}
+:root{--bg:#f6f6f3;--card:#fff;--ink:#1c1c1a;--muted:#6a6a64;--line:#e3e3dd;--ok:#1f7a4d;--warn:#a15c00;--bad:#a1262b;--accent:#2f5bd3;--bar:#dfe6fb;--on-accent:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131312;--card:#1d1d1b;--ink:#ecebe6;--muted:#9c9b94;--line:#33332f;--ok:#4cc38a;--warn:#e0a24a;--bad:#ef6b6f;--accent:#7d9cff;--bar:#27304d;--on-accent:#0d1430;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#131312;--card:#1d1d1b;--ink:#ecebe6;--muted:#9c9b94;--line:#33332f;--ok:#4cc38a;--warn:#e0a24a;--bad:#ef6b6f;--accent:#7d9cff;--bar:#27304d;--on-accent:#0d1430;color-scheme:dark}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,system-ui,"Segoe UI",sans-serif}
 main{max-width:1120px;margin:0 auto;padding:24px 16px 96px}h1{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}h2{font-size:15px;margin:24px 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .sub{color:var(--muted);margin:0 0 18px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -35,10 +36,10 @@ main{max-width:1120px;margin:0 auto;padding:24px 16px 96px}h1{font-size:24px;mar
 .cov{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 14px}.cov div.r{display:grid;grid-template-columns:150px 1fr 220px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
 .cov div.r:first-child{border-top:0}.track{height:10px;background:var(--bar);border-radius:99px;overflow:hidden}.fill{height:100%;background:var(--accent)}.num{font-size:13px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
 .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;margin:16px 0 0}
-.tools{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 input[type=search],select{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}input[type=search]{flex:1 1 260px;min-width:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.chip{font:inherit;font-size:13px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
-.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}.count{color:var(--muted);font-size:13px}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.count{color:var(--muted);font-size:13px}
 details.co{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;scroll-margin-top:80px}details.co[open]{box-shadow:0 1px 8px rgba(0,0,0,.06)}
 summary{cursor:pointer;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;list-style:none}summary::-webkit-details-marker{display:none}
 summary .n{font-weight:600}summary .o{color:var(--muted);font-size:13px;flex:1 1 220px}.tag{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
@@ -48,9 +49,11 @@ label.cmp{font-size:13px;color:var(--muted);display:flex;gap:4px;align-items:cen
 .chg{font-size:13px;border-left:3px solid var(--accent);padding:4px 10px;margin:8px 0;background:var(--bar);border-radius:0 6px 6px 0}
 table{border-collapse:collapse;width:100%;font-size:13px}td,th{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:500}
 a{color:var(--accent);overflow-wrap:anywhere}.link{display:inline-block;font-size:12px;margin-top:8px}
-#tray{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:9;background:var(--ink);color:var(--bg);border-radius:99px;padding:8px 8px 8px 16px;display:none;gap:10px;align-items:center;box-shadow:0 4px 18px rgba(0,0,0,.25)}
-#tray button{font:inherit;border:0;border-radius:99px;padding:6px 14px;cursor:pointer}#tray .go{background:var(--accent);color:#fff}#tray .clr{background:transparent;color:var(--bg)}
+#tray{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9;background:var(--ink);color:var(--bg);border-radius:99px;padding:8px 8px 8px 16px;display:none;gap:10px;align-items:center;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+#tray button{font:inherit;border:0;border-radius:99px;padding:6px 14px;cursor:pointer}#tray .go{background:var(--accent);color:var(--on-accent)}#tray .clr{background:transparent;color:var(--bg)}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:0;width:min(1000px,96vw);max-height:90vh}dialog::backdrop{background:rgba(0,0,0,.45)}
+.limit{font-size:13px;color:var(--warn)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 dialog header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}dialog .x{font:inherit;background:none;border:0;color:var(--ink);font-size:20px;cursor:pointer}
 dialog .wrap{overflow:auto;padding:4px 16px 16px}
 @media (max-width:640px){.cov div.r{grid-template-columns:1fr}.num{text-align:left}summary .o{flex-basis:100%}}
@@ -67,10 +70,11 @@ function order(){const k=sort.value;const els=[...list.children];const v=e=>{con
 chips.forEach(c=>c.addEventListener('click',()=>{c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')==='true'?'false':'true');apply()}));
 q.addEventListener('input',apply);sort.addEventListener('change',()=>{order();apply()});
 const tray=document.getElementById('tray'),tn=document.getElementById('tn');
-function upd(){tn.textContent=picked.size+' selected';tray.style.display=picked.size?'flex':'none'}
+function upd(){tn.textContent=picked.size+' selected';tray.style.display=picked.size?'flex':'none';if(!picked.size)lim.hidden=true}
 document.querySelectorAll('label.cmp').forEach(l=>l.addEventListener('click',e=>e.stopPropagation()));
-document.querySelectorAll('input.pick').forEach(b=>b.addEventListener('change',()=>{if(b.checked&&picked.size>=4){b.checked=false;alert('Compare up to 4 companies');return}
- b.checked?picked.add(b.value):picked.delete(b.value);upd()}));
+const lim=document.getElementById('lim');
+document.querySelectorAll('input.pick').forEach(b=>b.addEventListener('change',()=>{if(b.checked&&picked.size>=4){b.checked=false;lim.hidden=false;return}
+ lim.hidden=true;b.checked?picked.add(b.value):picked.delete(b.value);upd()}));
 document.getElementById('clr').onclick=()=>{picked.clear();document.querySelectorAll('input.pick').forEach(b=>b.checked=false);upd()};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nok=v=>v==null?'—':(Math.abs(v)>=1e6?(v/1e6).toFixed(1)+' m':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+' k':String(v));
@@ -127,6 +131,7 @@ def main() -> None:
     parser.add_argument("--report", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--note", default="")
+    parser.add_argument("--fragment", action="store_true", help="omit the document skeleton (for hosting that adds its own)")
     args = parser.parse_args()
     envelopes = [json.loads(line) for line in Path(args.envelopes).read_text(encoding="utf-8").splitlines() if line.strip()]
     report = json.loads(Path(args.report).read_text(encoding="utf-8"))
@@ -203,8 +208,9 @@ def main() -> None:
     chips = "".join(f'<button class="chip" type="button" aria-pressed="false" data-k="{esc(k)}">{esc(label)}</button>' for k, label in chip_keys)
     note = f'<div class="note">{esc(args.note)}</div>' if args.note else ""
     started, completed = str(report.get("started_at", ""))[:16], str(report.get("completed_at", ""))[:16]
-    page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Signalpost Company Profiles</title><style>{CSS}</style></head><body><main>
+    head = "" if args.fragment else ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+                                     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">')
+    page = f"""{head}<title>Signalpost Company Profiles</title><style>{CSS}</style>{"" if args.fragment else "</head><body>"}<main>
 <h1>Signalpost company profiles</h1>
 <p class="sub">Run {esc(report.get('run_id'))} · {started.replace('T', ' ')} → {completed[11:]} UTC · every fact links to its source; “not checked” is never shown as zero.</p>
 <div class="cards">{"".join(f'<div class="card"><b>{esc(v)}</b><span>{esc(k)}</span></div>' for v, k in cards)}</div>
@@ -217,10 +223,10 @@ def main() -> None:
 <div class="chips" role="group" aria-label="Filter by signal">{chips}</div>
 <div id="list">{"".join(rows)}</div>
 </main>
-<div id="tray" role="region" aria-label="Compare"><span id="tn"></span><button class="go" id="go" type="button">Compare</button><button class="clr" id="clr" type="button">Clear</button></div>
+<div id="tray" role="region" aria-label="Compare"><span id="tn"></span><span class="limit" id="lim" hidden>up to 4</span><button class="go" id="go" type="button">Compare</button><button class="clr" id="clr" type="button">Clear</button></div>
 <dialog id="cmp"><header><b>Compare companies</b><button class="x" type="button" onclick="this.closest('dialog').close()" aria-label="Close">×</button></header><div class="wrap" id="cmpbody"></div></dialog>
 <script id="data" type="application/json">{json.dumps(data, ensure_ascii=False).replace("</", "<\\/")}</script>
-<script>{JS}</script></body></html>"""
+<script>{JS}</script>{"" if args.fragment else "</body></html>"}"""
     Path(args.output).write_text(page, encoding="utf-8")
     print(args.output)
 

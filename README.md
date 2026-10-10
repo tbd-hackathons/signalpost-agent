@@ -17,34 +17,48 @@ one terminal envelope per input to `out/<run-id>-envelopes.jsonl`, plus profiles
 
 ## What this agent adds to the Builderr reference agent
 
-| Addition | Why |
-|---|---|
-| Website candidates from the registry e-mail domain | ~89% of the universe has no registry website, but many list a company-domain e-mail |
-| Legal-name `.no` domain candidates (DNS-checked) | finds sites the registry never recorded |
-| Shared-domain detection | an e-mail domain used by several entities (accountant, ISP, group mailbox) is never trusted on its own |
-| Contact and place proof | registry e-mail/phone on the site, or full legal name plus registered town, proves the site |
-| Strict gate for guessed domains | a guessed or shared domain publishes only with the organisation number, registry contact details, or full name plus registered town on the site |
-| Active job ads from NAV | every ad on arbeidsplassen.nav.no names its employer by organisation number; an ad is attached when that number is the company or one of its registered sub-units, and only after NAV confirms during the run that it is still active |
-| Careers pages on verified sites | schema.org `JobPosting` entries, and links from the company's own careers page to ads on recruiting systems (Webcruiter, Jobbnorge, Recman, Teamtailor, FINN, NAV) |
-| Dated news posts on verified sites | from the site's sitemap and homepage links, newest first; published only with a title and a date |
-| Contract claims in every envelope | `claims`, `evidence` and `external_observations` (starter observation schema) next to the full profile |
+**Identity first.** Every fact is tied to the exact legal entity before it is published. Name similarity
+alone never attaches anything; "not checked" is never reported as zero.
 
-Every attempt, accepted or rejected, is kept in `evidence.website.value.discovery.attempts` with its reason.
+| Area | Addition | Identity rule |
+|---|---|---|
+| Website | Candidates from the registry website and e-mail domain, Wikidata (P2333) and NAV employer homepages, DNS-checked legal-name `.no` domains, and (with a key) a search API | a guessed, shared or search-found domain publishes only with the organisation number, registry contact details, or full legal name plus registered place on the site |
+| Group sites | A registry-linked site that does not present itself as the company's own (manager, parent, group) | published as `related_website`; `official_website` is `ambiguous`; its social links, jobs and posts are not attributed |
+| Social profiles | Links on the verified own site, plus Wikidata profiles recorded against the organisation number | own site or organisation number |
+| Jobs | Active NAV ads (arbeidsplassen.nav.no) and the company's own careers page (schema.org `JobPosting`, recruiting-system links) | NAV names the employer by organisation number (company or registered sub-unit); each ad is re-checked live before publishing; a partial index can never assert "no jobs" |
+| Public activity | Dated posts from the own site's news feed (RSS/Atom), sitemap and homepage | own site only; attachment, archive and other-country pages are skipped |
+| Public activity | EU public-procurement notices (TED): contracts won, tenders published | the notice names the organisation number as winner or buyer |
+| Public activity | News articles found by a news search | the article names the organisation number, or the full legal name with its legal form plus the registered place |
+| Summary | Evidence-only brief: what the company does, accounts and trend, leadership, workplaces, hiring, activity, web presence, signals, and what is unknown; every sentence links its sources | built only from published claims |
+| Refresh | `changes` lists material changes since the previous run (`--previous`) | compared by stable identity, not by text |
 
-## Sources
+Every attempt, accepted or rejected, is kept in the profile with its reason.
 
-Official: Brønnøysundregistrene Enhetsregisteret (bulk + API) and Regnskapsregisteret, open data under
-[NLOD 2.0](https://data.norge.no/nlod/en/2.0). NAV's public job-ad feed API (`pam-stilling-feed.nav.no`,
-public token from NAV's own endpoint) and the arbeidsplassen.nav.no sitemap. Company-owned: the verified
-company website, its sitemap and careers page, fetched with robots.txt respected. No search engine, social
-platform or third-party directory is scraped. Contact persons named in job ads are never copied.
+## Sources and rights
 
-### Declared cache
+- **Official, open data:** Brønnøysundregistrene Enhetsregisteret (bulk and API) and Regnskapsregisteret
+  ([NLOD 2.0](https://data.norge.no/nlod/en/2.0)); NAV job ads (arbeidsplassen.nav.no public ad pages,
+  robots.txt allows all; NAV's public feed API); TED notices (free reuse, Commission Decision 2011/833/EU);
+  Wikidata (CC0).
+- **Company-owned:** the verified website, its sitemap, news feed and careers page, fetched with robots.txt respected.
+- **Search (candidates only):** `search-rs/` (Rust): Brave Search API when `BRAVE_SEARCH_API_KEY` is set,
+  GDELT news (keyless, one request per 5.5 s) and Wikipedia. A search result is never evidence on its own.
+- **Not used:** LinkedIn, Facebook, Instagram, Google or other platforms whose terms forbid automated collection.
+  Contact persons named in job ads are never copied.
 
-`data-cache/nav-feed/active-ads.jsonl.gz` lists active NAV ads by employer number (`make nav-index`
-builds it, about an hour). During a run it is only a starting list: the run reads the feed pages newer
-than the index, and re-checks every matched ad with NAV before publishing it. Without the cache the jobs
-field reports `failed`, never zero.
+### Declared caches (shipped or built before a run)
+
+| Cache | Built by | Freshness rule |
+|---|---|---|
+| `data/wikidata-no-orgnr.jsonl.gz` | `scripts/wikidata_snapshot.py` | websites still pass the website identity gate at run time |
+| `data/ted-no-notices.jsonl.gz` | `make ted-snapshot` | notices are dated; the snapshot date is recorded on each claim |
+| `data-cache/nav-feed/active-ads.jsonl.gz` | `make nav-index` | a starting list only; every matched ad is re-checked with NAV during the run |
+| `data-cache/search/` | the search tool | results are candidates; cache TTL 7 days |
+
+### Secrets
+
+`BRAVE_SEARCH_API_KEY` (optional) is read from the environment only, never from the command line, and never
+logged. Without it the run still completes and search-backed fields report `failed` (not checked).
 
 ## Optional local model (off by default)
 
@@ -71,8 +85,10 @@ make test
 
 ## License
 
-Files written for this entry (`src/norway_company_agent/site_candidates.py`, `site_discovery.py`,
-`site_intel.py`, `nav_feed.py`, `nav_jobs.py`, `claims_view.py`, `scripts/nav_active_index.py`, the
-`scripts/run_signalpost.py` changes, `tests/test_site_discovery.py`, `tests/test_site_intel.py`,
-`tests/test_nav_jobs.py`, `Makefile`) are MIT, see [LICENSE](LICENSE). The rest of the code and the documents under `docs/` come from
+Files written for this entry are MIT: `search-rs/`; in `src/norway_company_agent/`: `site_candidates.py`,
+`site_discovery.py`, `site_intel.py`, `nav_feed.py`, `nav_jobs.py`, `claims_view.py`, `brief.py`, `changes.py`,
+`wikidata.py`, `procurement.py`, `search_client.py`, `search_enrich.py`, `llm_extract.py`; in `scripts/`:
+`nav_active_index.py`, `wikidata_snapshot.py`, `ted_snapshot.py`, `build_report.py`, `fetch_search_bin.sh`,
+`collect_career_pages.py`, `eval_local_model.py`, and the `run_signalpost.py` changes; the tests for those
+files; `Makefile`, see [LICENSE](LICENSE). The rest of the code and the documents under `docs/` come from
 the Builderr Signalpost starter kit and are used under the challenge terms; they are not covered by the MIT license.
