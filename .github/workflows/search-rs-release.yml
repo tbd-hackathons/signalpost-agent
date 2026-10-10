@@ -1,0 +1,151 @@
+# Release workflow for search-rs (signalpost-search).
+#
+# Ready to move: copy this file to .github/workflows/search-rs-release.yml.
+# Trigger: push a tag named search-rs-v<version>, e.g. search-rs-v0.2.0. The
+# version must match search-rs/Cargo.toml.
+#
+# Output on the GitHub release:
+#   signalpost-search-x86_64-unknown-linux-musl   (static)
+#   signalpost-search-aarch64-unknown-linux-musl  (static)
+#   signalpost-search-aarch64-apple-darwin
+#   SHA256SUMS
+#
+# Only first-party GitHub actions are used, pinned to a full commit SHA.
+# Uploads use the preinstalled gh CLI, so no third-party release action.
+
+name: search-rs release
+
+on:
+  push:
+    tags:
+      - "search-rs-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: search-rs-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RUST_TOOLCHAIN: "1.95.0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Check tag matches Cargo.toml version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          crate_version="$(sed -n 's/^version = "\(.*\)"/\1/p' search-rs/Cargo.toml | head -n1)"
+          if [ "search-rs-v${crate_version}" != "${TAG}" ]; then
+            echo "Tag ${TAG} does not match search-rs/Cargo.toml version ${crate_version}" >&2
+            exit 1
+          fi
+      - name: Create the release if it does not exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag \
+              --title "${TAG}" \
+              --notes "signalpost-search ${TAG#search-rs-v}. Verify downloads with SHA256SUMS."
+          fi
+
+  build:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-24.04
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-14
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: search-rs
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
+        run: |
+          rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal \
+            --component clippy,rustfmt --target "${{ matrix.target }}"
+          rustup default "${RUST_TOOLCHAIN}"
+
+      - name: Install musl tools
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends musl-tools
+
+      - name: Lint
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Test (host target)
+        run: cargo test --locked
+
+      - name: Build release binary
+        env:
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CC_aarch64_unknown_linux_musl: musl-gcc
+        run: cargo build --release --locked --target "${{ matrix.target }}"
+
+      - name: Check the binary
+        run: |
+          bin="target/${{ matrix.target }}/release/signalpost-search"
+          file "${bin}"
+          case "${{ matrix.target }}" in
+            *-linux-musl)
+              file "${bin}" | grep -Eq 'statically linked|static-pie linked' \
+                || { echo "expected a static binary" >&2; exit 1; } ;;
+          esac
+          "${bin}" --version
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/signalpost-search" \
+            "dist/signalpost-search-${{ matrix.target }}"
+          gh release upload "${TAG}" "dist/signalpost-search-${{ matrix.target }}" \
+            --repo "${GITHUB_REPOSITORY}" --clobber
+
+  checksums:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Write and upload SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir dist && cd dist
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern 'signalpost-search-*'
+          sha256sum signalpost-search-* | sort -k2 > SHA256SUMS
+          cat SHA256SUMS
+          test "$(wc -l < SHA256SUMS)" -eq 3
+          gh release upload "${TAG}" SHA256SUMS --repo "${GITHUB_REPOSITORY}" --clobber

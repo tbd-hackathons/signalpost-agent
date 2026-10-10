@@ -1,0 +1,35 @@
+{
+  "type": "search",
+  "query": {"original": "\"Vinsnesbakk Elektro\" Sandnes", "country": "no"},
+  "web": {
+    "type": "search",
+    "results": [
+      {
+        "title": "Vinsnesbakk Elektro AS &ndash; <strong>Elektriker</strong> i Sandnes",
+        "url": "https://vinsnesbakk-elektro.example.no/",
+        "description": "Vi er en lokal <strong>elektro</strong>bedrift i Sandnes &amp; omegn.",
+        "page_age": "2025-11-03T09:12:00",
+        "age": "November 3, 2025",
+        "language": "nb",
+        "meta_url": {"scheme": "https", "hostname": "vinsnesbakk-elektro.example.no"}
+      },
+      {
+        "title": "Vinsnesbakk Elektro - Proff",
+        "url": "https://directory.example.com/vinsnesbakk-elektro/sandnes",
+        "description": "Regnskap og roller for Vinsnesbakk Elektro AS.",
+        "age": "March 1, 2024"
+      },
+      {
+        "title": "Result without a URL is skipped",
+        "description": "no url"
+      },
+      {
+        "title": "Relative age only",
+        "url": "https://news.example.no/a",
+        "description": "",
+        "age": "2 days ago"
+      }
+    ]
+  },
+  "mixed": {"type": "mixed", "main": []}
+}

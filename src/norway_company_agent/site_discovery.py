@@ -71,10 +71,21 @@ def _accept_domain_handles(value: dict[str, Any], legal_name: str = "") -> None:
 
 
 def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, max_candidates: int = 3,
-                    guess: bool = True, extra_websites: list[str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
-    """`extra_websites`: sites an organisation-number-keyed source (Wikidata, NAV employer) records for this company."""
+                    guess: bool = True, extra_websites: list[str] | None = None,
+                    search_websites: list[str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """`extra_websites`: sites an organisation-number-keyed source (Wikidata, NAV employer) records for this company.
+
+    `search_websites`: domains a search API returned for the company name. They are tried alone (the other
+    candidates already failed in the first pass) and need the same strict proof as a guessed domain.
+    """
     metrics: dict[str, Any] = {"requests": 0, "bytes": 0, "latencies_ms": []}
-    candidates = website_candidates(profile, domain_counts, guess=guess)
+    candidates = [] if search_websites else website_candidates(profile, domain_counts, guess=guess)
+    for url in search_websites or []:
+        host = (urllib.parse.urlparse(url).hostname or "").casefold().removeprefix("www.")
+        if host and host not in {c["host"] for c in candidates}:
+            candidates.append({"url": f"https://{host}/", "host": host, "source": "search_api_candidate",
+                               "reason": "a search API returned this site for the legal name",
+                               "requires_strict_proof": True})
     hosts = {c["host"] for c in candidates}
     for url in extra_websites or []:
         host = (urllib.parse.urlparse(url if "://" in url else "https://" + url).hostname or "").casefold().removeprefix("www.")

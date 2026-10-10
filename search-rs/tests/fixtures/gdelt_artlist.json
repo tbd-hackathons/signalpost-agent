@@ -1,0 +1,5 @@
+{"articles": [
+  {"url": "https://www.example.no/nyheter/equinor-1", "url_mobile": "", "title": "Equinor øker produksjonen på Johan Sverdrup", "seendate": "20261001T120000Z", "socialimage": "", "domain": "example.no", "language": "Norwegian", "sourcecountry": "Norway"},
+  {"url": "https://energy.example.com/equinor-q3", "url_mobile": "", "title": "Equinor Q3 results beat estimates", "seendate": "20260930T081500Z", "socialimage": "", "domain": "energy.example.com", "language": "English", "sourcecountry": "United Kingdom"},
+  {"url": "", "title": "empty url is skipped", "seendate": "20260930T081500Z"}
+]}

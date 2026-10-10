@@ -105,6 +105,46 @@ class SiteFetcher:
         return self._open(url)
 
 
+FEED_PATHS = ("/feed/", "/rss.xml")
+FEED_LINK = re.compile(r"(/feed/?$|/rss(\.xml)?/?$|/atom\.xml$|/feed\.xml$|[?&]format=rss)", re.I)
+
+
+def _feed_text(block: str, tag: str) -> str:
+    match = re.search(rf"<{tag}\b[^>]*>(.*?)</{tag}>", block, re.S | re.I)
+    value = (match.group(1) if match else "").strip()
+    value = re.sub(r"^<!\[CDATA\[(.*)\]\]>$", r"\1", value, flags=re.S).strip()
+    return _unescape(re.sub(r"<[^>]+>", " ", value)).strip()
+
+
+def _feed_date(value: str) -> str | None:
+    from email.utils import parsedate_to_datetime
+
+    value = value.strip()
+    if re.match(r"\d{4}-\d{2}-\d{2}", value):
+        return value
+    try:
+        return parsedate_to_datetime(value).isoformat()
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
+def parse_feed(raw: bytes) -> list[dict[str, str]]:
+    """Posts (title, url, published) from an RSS 2.0 or Atom feed; regex-based, so no XML entity expansion."""
+    text = raw.decode("utf-8", errors="replace")
+    if not re.search(r"<(rss|feed|rdf:RDF)\b", text[:2000], re.I):
+        return []
+    posts = []
+    for block in re.findall(r"<item\b.*?</item>", text, re.S | re.I)[:50]:
+        posts.append({"title": _feed_text(block, "title"), "url": _feed_text(block, "link") or _feed_text(block, "guid"),
+                      "published": _feed_date(_feed_text(block, "pubDate") or _feed_text(block, "dc:date"))})
+    for block in re.findall(r"<entry\b.*?</entry>", text, re.S | re.I)[:50]:
+        link = re.search(r"<link\b[^>]*rel=[\"']alternate[\"'][^>]*href=[\"']([^\"']+)", block, re.I) or \
+            re.search(r"<link\b[^>]*href=[\"']([^\"']+)", block, re.I)
+        posts.append({"title": _feed_text(block, "title"), "url": _unescape(link.group(1)) if link else "",
+                      "published": _feed_date(_feed_text(block, "published") or _feed_text(block, "updated"))})
+    return [p for p in posts if p["title"] and p["url"].startswith("http") and p["published"]]
+
+
 def parse_sitemap(raw: bytes) -> tuple[list[dict[str, str]], list[str]]:
     """Return (page entries with loc/lastmod, child sitemap URLs)."""
     if raw[:2] == b"\x1f\x8b":
@@ -214,6 +254,7 @@ class SiteIntel:
                  extractor: Any = None) -> None:
         self.fetcher = fetcher or SiteFetcher()
         self.max_posts, self.max_career_pages = max_posts, max_career_pages
+        self.max_feed_posts = max(max_posts, 10)
         self.extractor = extractor  # optional llm_extract.LocalExtractor
 
     def _html(self, url: str, domain: str) -> tuple[BeautifulSoup, dict[str, Any], str, str] | None:
@@ -271,6 +312,30 @@ class SiteIntel:
         ordered = sorted(dated.items(), key=lambda kv: kv[1], reverse=True)
         ordered += [(url, "") for url in dict.fromkeys(linked + undated) if url not in dated]
         result["post_candidates"] = len(ordered)
+
+        # A news feed lists many dated posts in one request; read it first.
+        feeds = [l["url"] for l in links if registered_domain(l["url"]) == domain and FEED_LINK.search(l["url"])]
+        base = "{0.scheme}://{0.netloc}".format(urllib.parse.urlparse(home))
+        for url in list(dict.fromkeys(feeds + [base + path for path in FEED_PATHS]))[:2]:
+            try:
+                raw, final_url, _ = self.fetcher.get(url)
+            except Exception:
+                continue  # most sites have no feed at these paths
+            if registered_domain(final_url) != domain:
+                continue
+            sha = hashlib.sha256(raw).hexdigest()
+            for item in parse_feed(raw):
+                if registered_domain(item["url"]) != domain or len(result["posts"]) >= self.max_feed_posts:
+                    continue
+                post = {"title": item["title"][:300], "url": item["url"], "published": item["published"],
+                        "date_source": "news_feed", "listed_on": final_url, "retrieved_at": utc_now(), "content_sha256": sha}
+                result["posts"].append(post)
+                result["observations"].append(self._observation(profile, "company_site", "public_post", post,
+                                                                f"{post['title']} ({post['published']})", proof))
+            if result["posts"]:
+                result["feed"] = final_url
+                ordered = []  # the feed already gave dated posts; no page-by-page reading needed
+                break
         attempts = 0
         for url, lastmod in ordered:
             if len(result["posts"]) >= self.max_posts or attempts >= self.max_posts + 2:

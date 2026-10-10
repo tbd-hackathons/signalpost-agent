@@ -1,0 +1,21 @@
+{
+  "type": "news",
+  "query": {"original": "Equinor"},
+  "results": [
+    {
+      "type": "news_result",
+      "title": "Equinor <strong>investerer</strong> i ny havvind",
+      "url": "https://avis.example.no/nyheter/equinor-havvind",
+      "description": "Selskapet melder at &quot;prosjektet&quot; starter i 2027.",
+      "age": "2 days ago",
+      "page_age": "2026-10-08T06:00:00",
+      "meta_url": {"hostname": "avis.example.no"}
+    },
+    {
+      "type": "news_result",
+      "title": "Equinor-sjefen om kvartalstallene",
+      "url": "https://tv.example.no/equinor-q3",
+      "description": "Intervju."
+    }
+  ]
+}

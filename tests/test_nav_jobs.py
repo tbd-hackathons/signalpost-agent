@@ -93,3 +93,31 @@ def test_incomplete_index_never_asserts_no_jobs():
     idx.complete = False
     record, _ = jobs_for_profile(profile(), idx, lambda uuid: {}, today=TODAY)
     assert record["status"] == "source_error"
+
+
+def test_web_ad_page_parses_without_contacts():
+    import json as _json
+
+    from norway_company_agent.nav_jobs import web_ad_detail
+
+    ad = {"id": "u9", "status": "ACTIVE", "title": "Elektriker", "jobTitle": "Elektriker", "published": "2026-10-01T00:00:00Z",
+          "expires": "2026-11-01T00:00:00Z", "updated": "2026-10-02T00:00:00Z", "positionCount": 1,
+          "employer": {"orgnr": "912345678", "name": "VINSNESBAKK ELEKTRO AS", "homepage": "https://vinsnesbakk.no"},
+          "contactList": [{"name": "Kari Nordmann", "phone": "99999999"}], "locationList": [{"city": "SANDNES"}]}
+    payload = 'x:["$","$L2a",null,{"adData":' + _json.dumps(ad) + '}]'
+    html = f'<script>self.__next_f.push([1,{_json.dumps(payload)}])</script>'
+    summary = ad_summary(web_ad_detail(html, "u9"))
+    assert summary["employer_orgnr"] == "912345678" and summary["status"] == "ACTIVE"
+    assert summary["employer_homepage"] == "https://vinsnesbakk.no" and summary["work_locations"] == [{"city": "SANDNES"}]
+    assert "kari" not in str(summary).casefold()
+
+
+def test_index_without_partial_flag_is_incomplete(tmp_path):
+    import gzip
+    import json as _json
+
+    (tmp_path / "active-ads.jsonl.gz").write_bytes(gzip.compress(b""))
+    (tmp_path / "active-ads.meta.json").write_text(_json.dumps({"built_at": "2026-10-10T00:00:00Z"}))
+    assert NavJobIndex.load(tmp_path).complete is False
+    (tmp_path / "active-ads.meta.json").write_text(_json.dumps({"built_at": "x", "partial": False}))
+    assert NavJobIndex.load(tmp_path).complete is True

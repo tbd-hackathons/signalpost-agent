@@ -55,22 +55,27 @@ def main() -> None:
     envelopes = [json.loads(line) for line in Path(args.envelopes).read_text(encoding="utf-8").splitlines() if line.strip()]
     report = json.loads(Path(args.report).read_text(encoding="utf-8"))
 
+    def family(field: str) -> str:
+        return field if field.startswith("public_activity.") else field.split(".")[0]
+
     found = Counter()
     companies_with = Counter()
     for env in envelopes:
-        fields = {c["field"].split(".")[0] for c in env["claims"] if c["availability"] == "available"}
+        fields = {family(c["field"]) for c in env["claims"] if c["availability"] == "available"}
         for c in env["claims"]:
             if c["availability"] == "available":
-                found[c["field"].split(".")[0]] += 1
+                found[family(c["field"])] += 1
         companies_with.update(fields)
     ops = report.get("operations", {})
     cards = [
         (companies_with["official_website"], "verified websites"),
         (found["social_profile"], "company social profiles"),
         (found["job_posting"], f"job ads ({companies_with['job_posting']} companies)"),
-        (found["public_post"], f"dated news posts ({companies_with['public_post']} companies)"),
+        (found["public_post"], f"dated posts on own sites ({companies_with['public_post']} companies)"),
+        (found["public_activity.procurement"], f"public tenders and awards ({companies_with['public_activity.procurement']} companies)"),
+        (found["public_activity.news_mention"], f"news articles naming the company ({companies_with['public_activity.news_mention']} companies)"),
         (ops.get("requests"), "outbound requests"),
-        ("US$0", "third-party cost"),
+        (f"US${ops.get('third_party_cost_usd') or 0:g}", "third-party cost"),
     ]
     baseline = json.loads(args.baseline) if args.baseline else {}
     if baseline:
@@ -84,8 +89,10 @@ def main() -> None:
         other = [c for c in env["claims"] if c["availability"] != "available"]
         evidence = {e["id"]: e for e in env["evidence"]}
         tags = []
-        for field, label in (("official_website", "website"), ("social_profile", "social"), ("job_posting", "jobs"), ("public_post", "posts")):
-            n = sum(1 for c in avail if c["field"].split(".")[0] == field)
+        for field, label in (("official_website", "website"), ("social_profile", "social"), ("job_posting", "jobs"),
+                             ("public_post", "posts"), ("public_activity.procurement", "tenders"),
+                             ("public_activity.news_mention", "news")):
+            n = sum(1 for c in avail if family(c["field"]) == field)
             if n:
                 tags.append(f'<span class="tag ok">{label} {n}</span>')
         for c in other:

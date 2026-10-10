@@ -105,7 +105,7 @@ class NavJobIndex:
             for line in handle:
                 row = json.loads(line)
                 by_orgnr[row["employer_orgnr"]].append(row)
-        return cls(dict(by_orgnr), meta.get("built_at"), complete=not meta.get("partial"))
+        return cls(dict(by_orgnr), meta.get("built_at"), complete=meta.get("partial") is False)  # an index without the flag is treated as incomplete
 
     def homepages(self, organisation_number: str) -> list[str]:
         """Homepages employers gave NAV under this exact organisation number (website leads, not facts)."""
@@ -246,6 +246,62 @@ class NavDetailClient:
             if self.feed.token is None:
                 self.feed._refresh_token()
         return self.feed.get(f"/api/v1/feedentry/{uuid}", retries=2)
+
+
+FLIGHT_CHUNK = re.compile(r'self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)')
+
+
+def web_ad_detail(html: str, uuid: str) -> dict[str, Any]:
+    """Read the ad data embedded in an arbeidsplassen.nav.no ad page, in the feed-entry shape `ad_summary` expects."""
+    flight = "".join(json.loads(chunk) for chunk in FLIGHT_CHUNK.findall(html))
+    start = flight.find('"adData":')
+    if start < 0:
+        raise ValueError("ad page has no embedded ad data")
+    ad, _ = json.JSONDecoder().raw_decode(flight[start + len('"adData":'):])
+    employer = ad.get("employer") or {}
+    return {"uuid": ad.get("id") or uuid, "status": ad.get("status"), "sistEndret": ad.get("updated"), "ad_content": {
+        "uuid": ad.get("id") or uuid, "title": ad.get("title"), "jobtitle": ad.get("jobTitle"),
+        "published": ad.get("published"), "expires": ad.get("expires"), "updated": ad.get("updated"),
+        "applicationDue": (ad.get("application") or {}).get("applicationDueDate"),
+        "engagementtype": ad.get("engagementType"), "extent": ", ".join(ad.get("extent") or []) or None,
+        "positioncount": ad.get("positionCount"), "sector": employer.get("sector"),
+        "link": f"{FEED_HOME}/stilling/{ad.get('id') or uuid}", "sourceurl": ad.get("sourceUrl"),
+        "source": ad.get("source"),
+        "employer": {"orgnr": employer.get("orgnr"), "name": employer.get("name"), "homepage": employer.get("homepage")},
+        "workLocations": ad.get("locationList") or []}}  # contactList is deliberately not carried over
+
+
+class NavWebClient:
+    """Fetches ads from NAV's public job pages (robots.txt allows all), one request at a time with a pause.
+
+    A removed ad (HTTP 404/410) returns {} so it is reported as no longer active; any other failure raises,
+    so the caller reports the check as failed rather than as "no jobs".
+    """
+
+    def __init__(self, timeout: float = 30.0, pause: float = 1.5) -> None:
+        import requests
+
+        self.session = requests.Session()
+        self.session.headers["User-Agent"] = "signalpost-agent/0.2 (+https://github.com/tbd-hackathons/signalpost-agent)"
+        self.timeout, self.pause = timeout, pause
+        self._lock = threading.Lock()
+        self._last = 0.0
+        self.requests = 0
+
+    def __call__(self, uuid: str) -> dict[str, Any]:
+        import time
+
+        with self._lock:
+            wait = self._last + self.pause - time.monotonic()
+            if wait > 0:
+                time.sleep(wait)
+            self._last = time.monotonic()
+            self.requests += 1
+        response = self.session.get(f"{FEED_HOME}/stilling/{uuid}", timeout=self.timeout)
+        if response.status_code in (404, 410):
+            return {}
+        response.raise_for_status()
+        return web_ad_detail(response.text, uuid)
 
 
 def catch_up(index: NavJobIndex, feed: NavFeed, next_url: str | None, *, max_pages: int = 10) -> dict[str, Any]:

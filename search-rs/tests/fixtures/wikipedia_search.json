@@ -1,0 +1,11 @@
+{
+  "batchcomplete": true,
+  "continue": {"sroffset": 2, "continue": "-||"},
+  "query": {
+    "searchinfo": {"totalhits": 2},
+    "search": [
+      {"ns": 0, "title": "Hannestad barnehage", "pageid": 1001, "snippet": "<span class=\"searchmatch\">Hannestad</span> <span class=\"searchmatch\">barnehage</span> er en barnehage i Sarpsborg &amp; omegn."},
+      {"ns": 0, "title": "Tromsø (by)", "pageid": 1002, "snippet": "Tromsø er en by"}
+    ]
+  }
+}

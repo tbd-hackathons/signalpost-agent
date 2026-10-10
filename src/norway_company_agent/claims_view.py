@@ -11,6 +11,7 @@ import hashlib
 from typing import Any
 
 from .external_footprint import publishable_observation
+from .search_enrich import news_observation
 
 
 def _ev_id(*parts: Any) -> str:
@@ -94,6 +95,36 @@ def contract_view(profile: dict[str, Any]) -> dict[str, Any]:
         claims.append({"field": "job_posting", "value": None,
                        "availability": "failed" if jobs.get("status") == "source_error" else "not_available",
                        "confidence": None, "evidence_ids": [], "note": jobs.get("note")})
+
+    procurement = records.get("procurement") or {}
+    for notice in (procurement.get("value") or {}).get("notices") or []:
+        span = f"{notice['identity_proof']}: {notice.get('title')} ({notice.get('published')})"
+        eid = cite(notice["url"], "official_procurement_notice", notice.get("retrieved_at"), notice.get("content_sha256"), span)
+        claims.append({"field": "public_activity.procurement", "value": {k: notice.get(k) for k in (
+            "role", "title", "published", "url", "counterparties")},
+            "availability": "available", "confidence": 0.99, "evidence_ids": [eid]})
+    if procurement.get("status") in {"not_found", "source_error"}:
+        claims.append({"field": "public_activity.procurement", "value": None,
+                       "availability": "failed" if procurement["status"] == "source_error" else "not_available",
+                       "confidence": None, "evidence_ids": [], "note": procurement.get("note")})
+
+    search = records.get("search") or {}
+    search_value = search.get("value") or {}
+    for mention in search_value.get("mentions") or []:
+        obs = news_observation(profile, mention)
+        observations.append(obs)
+        eid = cite(mention["url"], "public_news", mention["retrieved_at"], mention["content_sha256"],
+                   f"{mention['identity_proof']}: {mention.get('evidence_span') or mention['title']}")
+        claims.append({"field": "public_activity.news_mention", "value": {k: mention.get(k) for k in (
+            "title", "url", "outlet", "published", "date_source")},
+            "availability": "available", "confidence": 0.9, "evidence_ids": [eid], "found_by": mention.get("found_by")})
+    if search and not search_value.get("mentions"):
+        news_state = search_value.get("news")
+        claims.append({"field": "public_activity.news_mention", "value": None,
+                       "availability": "not_available" if news_state == "searched" else "failed",
+                       "confidence": None, "evidence_ids": [],
+                       "note": "searched; no article names this exact legal entity" if news_state == "searched"
+                       else "news search not checked in this run"})
 
     observations = [obs for obs in observations if publishable_observation(obs)]
     return {"claims": claims, "evidence": list(evidence.values()), "external_observations": observations}

@@ -70,3 +70,18 @@ def test_activity_only_from_the_companys_own_site():
     assert own_site_reason({"name": "TREDJE BOLIGSEKTOR AS"}, value("hellvikhage.no", "Shared Living - Tredje Boligsektor AS"))
     assert own_site_reason({"name": "MIDTUNKRAFT AS"}, value("clemenskraft.no", "Home | Clemens Kraft", 0.97)) is None
     assert own_site_reason({"name": "SAMEIET WALDEMAR THRANESGATE 40"}, value("ecitnorian.com", "Ecit Norian")) is None
+
+
+def test_parse_feed_reads_rss_and_atom_and_skips_undated():
+    from norway_company_agent.site_intel import parse_feed
+
+    rss = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>Nyheter</title>
+    <item><title><![CDATA[Ny avdeling i Sandnes]]></title><link>https://example.no/nyheter/ny-avdeling</link>
+    <pubDate>Tue, 06 Oct 2026 08:00:00 +0200</pubDate></item>
+    <item><title>Uten dato</title><link>https://example.no/nyheter/x</link></item></channel></rss>"""
+    atom = b"""<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Vi vant kontrakt</title>
+    <link rel="alternate" href="https://example.no/a"/><published>2026-09-01T10:00:00Z</published></entry></feed>"""
+    assert parse_feed(rss) == [{"title": "Ny avdeling i Sandnes", "url": "https://example.no/nyheter/ny-avdeling",
+                                "published": "2026-10-06T08:00:00+02:00"}]
+    assert parse_feed(atom)[0]["url"] == "https://example.no/a"
+    assert parse_feed(b"<html><body>not a feed</body></html>") == []

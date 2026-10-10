@@ -139,6 +139,26 @@ def build_brief(profile: dict[str, Any]) -> dict[str, Any]:
     else:
         unknown.append("job ads (source could not be checked)")
 
+    proc = ev.get("procurement") or {}
+    pv = proc.get("value") or {}
+    if proc.get("status") == "available" and pv.get("notices"):
+        latest = pv["notices"][0]
+        won = pv.get("awards_won") or 0
+        lead = (f"It has won {won} public contract{'s' if won != 1 else ''} published on TED" if won
+                else f"It appears in {pv.get('notice_count')} public-procurement notice{'s' if pv.get('notice_count') != 1 else ''} on TED")
+        say(f"{lead}; the latest, on {latest.get('published')}, is “{latest.get('title')}”.", proc)
+        signals.append("public-sector supplier" if won else "public buyer")
+
+    mentions = ((ev.get("search") or {}).get("value") or {}).get("mentions") or []
+    if mentions:
+        latest = max(mentions, key=lambda m: str(m.get("published") or ""))
+        sentences.append({"text": f"It is named in {len(mentions)} news article{'s' if len(mentions) != 1 else ''}; "
+                                  f"the latest, on {str(latest.get('published'))[:10]} in {latest.get('outlet')}, is “{latest.get('title')}”.",
+                          "sources": [m["url"] for m in mentions][:3]})
+        signals.append("in the news")
+    elif ((ev.get("search") or {}).get("value") or {}).get("news") not in (None, "searched"):
+        unknown.append("news coverage (search not checked)")
+
     web = ev.get("website") or {}
     wv = web.get("value") or {}
     if web.get("status") == "available" and (wv.get("identity_assessment") or {}).get("publishable"):

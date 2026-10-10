@@ -25,7 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from norway_company_agent.evidence import utc_now  # noqa: E402
-from norway_company_agent.nav_jobs import NavDetailClient, _expired, ad_summary  # noqa: E402
+from norway_company_agent.nav_jobs import NavDetailClient, NavWebClient, _expired, ad_summary  # noqa: E402
 
 
 SITEMAP = "https://arbeidsplassen.nav.no/stillinger/sitemap.xml"
@@ -52,6 +52,8 @@ def main() -> None:
     parser.add_argument("--cache", required=True)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--pause", type=float, default=0.3, help="seconds each worker waits between requests")
+    parser.add_argument("--source", choices=["web", "feed"], default="web",
+                        help="web: the public ad pages (fast, robots.txt allows all); feed: the job-feed API")
     parser.add_argument("--limit", type=int, default=0, help="fetch at most N new details (0 = all)")
     args = parser.parse_args()
     cache = Path(args.cache)
@@ -74,14 +76,21 @@ def main() -> None:
         todo = todo[: args.limit]
     print(f"cached details={len(details)} to fetch={len(todo)}", flush=True)
 
-    client = NavDetailClient()
+    client = NavWebClient(pause=args.pause) if args.source == "web" else NavDetailClient()
     # Feed cursor for run-time catch-up: the newest feed page as of this build.
-    last_page = client.feed.get("/api/v1/feed?last=true")
-    cursor = f"/api/v1/feed/{last_page['id']}" if last_page.get("id") else None
+    try:
+        if args.source == "web":
+            raise RuntimeError("feed not used")
+        last_page = client.feed.get("/api/v1/feed?last=true")
+        cursor = f"/api/v1/feed/{last_page['id']}" if last_page.get("id") else None
+    except Exception:  # keep the previous build's cursor rather than fail the whole build
+        meta_path = cache / "active-ads.meta.json"
+        cursor = json.loads(meta_path.read_text()).get("feed_next_url") if meta_path.exists() else None
     started, done, failed = time.monotonic(), 0, 0
     with details_path.open("a", encoding="utf-8") as out, ThreadPoolExecutor(args.workers) as pool:
         def paced(uuid: str) -> dict:
-            time.sleep(args.pause)
+            if args.source == "feed":
+                time.sleep(args.pause)
             return client(uuid)
 
         futures = {pool.submit(paced, uuid): uuid for uuid in todo}
@@ -109,9 +118,12 @@ def main() -> None:
         for row in rows:
             handle.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
     tmp.replace(cache / "active-ads.jsonl.gz")
-    meta = {"built_at": utc_now(), "source": SITEMAP, "sitemap_ads": len(active), "feed_next_url": cursor,
+    missing = sum(1 for uuid in active if uuid not in details)
+    meta = {"built_at": utc_now(), "source": SITEMAP, "sitemap_ads": len(active), "ads_without_details": missing,
+            # Complete only when at most 1% of live ads lack details; otherwise "no jobs" can never be asserted.
+            "partial": missing > max(10, len(active) // 100), "feed_next_url": cursor,
             "active_ads": len(rows), "employers": len({row["employer_orgnr"] for row in rows}),
-            "detail_requests": len(todo), "detail_failures": failed, "requests": client.feed.requests}
+            "detail_requests": len(todo), "detail_failures": failed, "requests": getattr(client, "requests", None) or client.feed.requests, "detail_source": args.source}
     (cache / "active-ads.meta.json").write_text(json.dumps(meta, indent=2) + "\n")
     print(json.dumps(meta, indent=2))
 
