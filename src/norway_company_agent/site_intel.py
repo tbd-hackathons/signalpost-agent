@@ -52,6 +52,10 @@ DATE_META = ("article:published_time", "og:published_time", "datePublished", "pu
 MAX_SITEMAP_URLS = 5000
 
 
+def _fold_title(text: str | None) -> str:
+    return " ".join(re.findall(r"\w+", str(text or "").casefold()))
+
+
 def registered_domain(url: str) -> str:
     return tldextract.extract(urllib.parse.urlparse(url).hostname or "").top_domain_under_public_suffix
 
@@ -126,6 +130,29 @@ def _feed_date(value: str) -> str | None:
         return parsedate_to_datetime(value).isoformat()
     except (TypeError, ValueError, IndexError):
         return None
+
+
+JUNK_POST_TITLE = re.compile(r"(?i)(\barkiv(er)?\b|\barchives?\b|^blog-temp|\bimage-?\d|\bkategori\b|\bcategory\b|\buntitled\b|"
+                             r"\bside ikke funnet\b|\bpage not found\b|^404\b)")
+JUNK_POST_PATH = re.compile(r"(?i)/(slide|attachment|category|kategori|tag|tags|author|forfatter|wp-content|feed)/")
+LOCALE_SEGMENT = re.compile(r"^[a-z]{2}([-_][a-z]{2})?$", re.I)
+
+
+def locale_prefix(home: str) -> str:
+    """Leading language/country path of the verified page, e.g. "/nb/no" for kompan.com/nb/no; "" for a plain site."""
+    segments = []
+    for seg in urllib.parse.urlparse(home).path.strip("/").split("/"):
+        if not seg or not LOCALE_SEGMENT.match(seg):
+            break
+        segments.append(seg.casefold())
+    return "/" + "/".join(segments) if segments else ""
+
+
+def post_allowed(url: str, title: str, prefix: str) -> bool:
+    path = urllib.parse.urlparse(url).path.casefold()
+    if prefix and not (path == prefix or path.startswith(prefix + "/")):
+        return False  # another country's or language's section of a group site
+    return not JUNK_POST_PATH.search(path) and not JUNK_POST_TITLE.search(title or "")
 
 
 def parse_feed(raw: bytes) -> list[dict[str, str]]:
@@ -311,7 +338,11 @@ class SiteIntel:
         linked = [l["url"] for l in links if registered_domain(l["url"]) == domain and is_post_url(l["url"])]
         ordered = sorted(dated.items(), key=lambda kv: kv[1], reverse=True)
         ordered += [(url, "") for url in dict.fromkeys(linked + undated) if url not in dated]
+        prefix = locale_prefix(home)
+        ordered = [(url, lastmod) for url, lastmod in ordered if post_allowed(url, "", prefix)]
         result["post_candidates"] = len(ordered)
+        home_title = _fold_title(value.get("title"))
+        seen_titles: set[str] = set()
 
         # A news feed lists many dated posts in one request; read it first.
         feeds = [l["url"] for l in links if registered_domain(l["url"]) == domain and FEED_LINK.search(l["url"])]
@@ -326,6 +357,8 @@ class SiteIntel:
             sha = hashlib.sha256(raw).hexdigest()
             for item in parse_feed(raw):
                 if registered_domain(item["url"]) != domain or len(result["posts"]) >= self.max_feed_posts:
+                    continue
+                if not post_allowed(item["url"], item["title"], prefix):
                     continue
                 post = {"title": item["title"][:300], "url": item["url"], "published": item["published"],
                         "date_source": "news_feed", "listed_on": final_url, "retrieved_at": utc_now(), "content_sha256": sha}
@@ -351,8 +384,15 @@ class SiteIntel:
             soup, structured, final_url, sha = page
             og = soup.find("meta", attrs={"property": "og:title"})
             h1 = soup.find("h1")
-            title = (og.get("content") if og and og.get("content") else h1.get_text(" ", strip=True) if h1 else
-                     soup.title.get_text(" ", strip=True) if soup.title else "").strip()[:300]
+            options = [og.get("content") if og else None, h1.get_text(" ", strip=True) if h1 else None,
+                       soup.title.get_text(" ", strip=True) if soup.title else None]
+            # A site-wide og:title or <title> repeated on every page is the site's name, not the post's headline.
+            options = [o.strip() for o in options if o and o.strip() and _fold_title(o) not in seen_titles | {home_title}]
+            title = (options[0] if options else "")[:300]
+            if title:
+                seen_titles.add(_fold_title(title))
+            if not post_allowed(final_url, title, prefix):
+                continue
             published, date_source = _published_date(soup, structured)
             if not published and lastmod:
                 published, date_source = lastmod, "sitemap_lastmod"
@@ -470,8 +510,20 @@ def own_site_reason(profile: dict[str, Any], value: dict[str, Any]) -> str | Non
         return "full legal name in the page title"
     if len(words) >= 2 and len(label) >= 5 and any(label == "".join(words[:k]) for k in range(2, len(words))):
         return "domain name spells the start of the legal name"
+    title_words = {_fold(w) for w in re.findall(r"\w+", str(value.get("title") or ""))}
+    distinctive = [w for w in words if len(w) >= 3 and not w.isdigit() and w not in GENERIC_NAME_WORDS]
+    if distinctive and any(w in title_words for w in distinctive):
+        return "a distinctive word of the legal name is in the page title"
     # Registry contact details on the site are not enough here: a group often shares one mailbox.
     return None
+
+
+GENERIC_NAME_WORDS = {
+    "borettslag", "sameie", "sameiet", "boligsameie", "boligsameiet", "eierseksjonssameie", "eiendom", "eiendommer",
+    "invest", "investering", "holding", "bolig", "boliger", "service", "gruppen", "group", "norge", "norway", "nordic",
+    "kraft", "bygg", "transport", "drift", "utvikling", "forvaltning", "senter", "senteret", "storsenter", "hjem",
+    "home", "og", "and", "the", "for", "avd", "avdeling", "seksjon", "regnskap", "consulting", "partner", "partners",
+}
 
 
 def site_intel_for(profile: dict[str, Any], website: dict[str, Any], *, max_posts: int = 3,

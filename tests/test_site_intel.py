@@ -85,3 +85,14 @@ def test_parse_feed_reads_rss_and_atom_and_skips_undated():
                                 "published": "2026-10-06T08:00:00+02:00"}]
     assert parse_feed(atom)[0]["url"] == "https://example.no/a"
     assert parse_feed(b"<html><body>not a feed</body></html>") == []
+
+
+def test_post_filters_drop_attachments_archives_and_other_locales():
+    from norway_company_agent.site_intel import locale_prefix, post_allowed
+
+    assert locale_prefix("https://www.kompan.com/nb/no") == "/nb/no" and locale_prefix("https://firma.no/") == ""
+    assert not post_allowed("https://www.kompan.com/cs/cz/about/news/x", "Novy katalog", "/nb/no")
+    assert post_allowed("https://www.kompan.com/nb/no/om-oss/nyheter/x", "Ny katalog", "/nb/no")
+    assert not post_allowed("https://sprakreisebyraet.no/slide/blog/blog-temp-image3/", "blog-temp-image3", "")
+    assert not post_allowed("https://firma.no/nyheter/administrasjon", "Administrasjon Arkiver - Firma AS", "")
+    assert post_allowed("https://firma.no/nyheter/nytt-lokale", "Nytt lokale", "")

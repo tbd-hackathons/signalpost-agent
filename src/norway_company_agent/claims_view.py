@@ -12,6 +12,7 @@ from typing import Any
 
 from .external_footprint import publishable_observation
 from .search_enrich import news_observation
+from .site_intel import own_site_reason
 
 
 def _ev_id(*parts: Any) -> str:
@@ -33,11 +34,24 @@ def contract_view(profile: dict[str, Any]) -> dict[str, Any]:
     website = records.get("website") or {}
     web = website.get("value") or {}
     assessment = web.get("identity_assessment") or {}
-    if website.get("status") == "available" and assessment.get("publishable"):
+    verified = website.get("status") == "available" and assessment.get("publishable")
+    own = own_site_reason(profile, web) if verified else None
+    if verified and not own:
+        # The registry links the company to this site, but it is a manager's, parent's or group site:
+        # labelled as such, never collapsed into the company's own website, and its social links are not attributed.
+        span = "; ".join(str(r) for r in assessment.get("reasons") or [])[:500] or web.get("title") or ""
+        eid = cite(website.get("source_url"), "registry_linked_site", website.get("retrieved_at"), website.get("content_sha256"), span)
+        claims.append({"field": "related_website", "value": {"url": web.get("final_url"), "title": web.get("title"),
+                       "relationship": "registry-linked site of a manager, parent or group company"},
+                       "availability": "available", "confidence": assessment.get("score"), "evidence_ids": [eid]})
+        claims.append({"field": "official_website", "value": None, "availability": "ambiguous", "confidence": None,
+                       "evidence_ids": [eid], "note": f"The registry's contact details lead to {web.get('final_url')}, "
+                       "which does not present itself as this company's own site"})
+    elif verified:
         span = "; ".join(str(r) for r in assessment.get("reasons") or [])[:500] or web.get("title") or ""
         eid = cite(website.get("source_url"), "company_owned", website.get("retrieved_at"), website.get("content_sha256"), span)
         claims.append({"field": "official_website", "value": web.get("final_url"), "availability": "available",
-                       "confidence": assessment.get("score"), "evidence_ids": [eid],
+                       "confidence": assessment.get("score"), "evidence_ids": [eid], "own_site_basis": own,
                        "found_by": ((web.get("discovery") or {}).get("selected") or {}).get("source")})
         for link in web.get("social_links") or []:
             claims.append({"field": f"social_profile.{link['platform']}", "value": link["url"], "availability": "available",
@@ -49,7 +63,7 @@ def contract_view(profile: dict[str, Any]) -> dict[str, Any]:
                        "confidence": None, "evidence_ids": []})
 
     published_profiles = {link["url"].casefold().rstrip("/") for link in web.get("social_links") or []} \
-        if website.get("status") == "available" and assessment.get("publishable") else set()
+        if verified and own else set()
     wikidata = records.get("wikidata") or {}
     for link in (wikidata.get("value") or {}).get("social_profiles") or []:
         if link["url"].casefold().rstrip("/") in published_profiles:
