@@ -1,9 +1,9 @@
-# Signalpost agent
+# Arjuna: a Signalpost agent
 
 > Give it a Norwegian organisation number; it returns a sourced company profile: identity, filed accounts,
 > leadership, workplaces, verified website and company-owned profiles, each fact tied to its source and date.
 
-**Challenge:** [Builderr Signalpost](https://builderr.ai/challenges/signalpost) · **Builder:** Fury Oktria Putra (solo, with AI agents)
+**Agent:** Arjuna · **Challenge:** [Builderr Signalpost](https://builderr.ai/challenges/signalpost) · **Builder:** Fury Oktria Putra (solo, with AI agents)
 
 ## Run it in one command
 
