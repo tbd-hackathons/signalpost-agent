@@ -4,6 +4,7 @@ import json
 import ipaddress
 import re
 import socket
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -37,6 +38,35 @@ PRIORITY_TERMS = (
 )
 
 
+# A batch run can outrun the local resolver, which then answers EAI_AGAIN instead of the real name.
+# Resolution is serialised a little and retried, because a failed lookup and a missing domain look identical
+# to the caller and one of them silently drops a live company site.
+_DNS_GATE = threading.BoundedSemaphore(12)
+
+
+def resolve_host(host: str, *, attempts: int = 3) -> list[str]:
+    """Addresses for `host`, retrying the failures that belong to us rather than to the name.
+
+    `EAI_AGAIN` means "ask again"; `EAI_NONAME` means the domain does not exist and retrying only wastes time.
+    Without this, a busy run records live sites as "Hostname did not resolve" and the same snapshot gives
+    different answers on two runs.
+    """
+    retryable = {socket.EAI_AGAIN, getattr(socket, "EAI_FAIL", socket.EAI_AGAIN)}
+    last: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            with _DNS_GATE:
+                return [item[4][0] for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)]
+        except socket.gaierror as exc:
+            last = exc
+            if getattr(exc, "errno", None) not in retryable:
+                break
+        except OSError as exc:  # resolver socket errors
+            last = exc
+        time.sleep(0.1 * (attempt + 1))
+    raise last if last is not None else socket.gaierror(f"could not resolve {host}")
+
+
 def assert_public_url(url: str) -> None:
     parsed = urllib.parse.urlparse(url)
     host = (parsed.hostname or "").lower().rstrip(".")
@@ -45,7 +75,7 @@ def assert_public_url(url: str) -> None:
     if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
         raise ValueError("Local hosts are blocked")
     try:
-        addresses = {item[4][0] for item in socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)}
+        addresses = set(resolve_host(host))
     except socket.gaierror as exc:
         raise ValueError("Hostname did not resolve") from exc
     for address in addresses:

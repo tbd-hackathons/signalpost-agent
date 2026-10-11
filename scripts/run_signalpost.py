@@ -55,6 +55,8 @@ def main() -> None:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--modules", default="registry,accounting_obligation,registry_live,financials,roles,group,locations,wikidata,procurement,website,jobs,search")
     parser.add_argument("--max-site-candidates", type=int, default=4)
+    parser.add_argument("--max-site-guesses", type=int, default=3,
+                        help="Name-derived domains fetched per company, after DNS keeps only the ones that exist")
     parser.add_argument("--no-domain-guess", action="store_true")
     parser.add_argument("--no-site-intel", dest="site_intel", action="store_false", help="skip news/careers reading on verified sites")
     parser.add_argument("--max-site-posts", type=int, default=3)
@@ -115,8 +117,8 @@ def main() -> None:
         nav_sites = nav_index.homepages(profile["organisation_number"]) if nav_index else []
         if "website" in requested_modules:
             website_record, website_metrics = resolve_website(
-                profile, domain_counts, max_candidates=args.max_site_candidates, guess=not args.no_domain_guess,
-                extra_websites=wikidata_sites + nav_sites)
+                profile, domain_counts, max_candidates=args.max_site_candidates, max_guesses=args.max_site_guesses,
+                guess=not args.no_domain_guess, extra_websites=wikidata_sites + nav_sites)
             profile["evidence"]["website"] = website_record
         intel, intel_metrics = None, {"requests": 0, "bytes": 0, "latencies_ms": []}
         if "website" in requested_modules and args.site_intel:

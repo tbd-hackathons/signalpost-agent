@@ -61,6 +61,20 @@ def test_contact_and_place_proof():
     assert place_proof(p, "Vinsnesbakk Elektro, Bergen") is None
 
 
+def test_place_proof_needs_the_whole_legal_name():
+    """ARKWRIGHT X AS must not publish on "Arkwright Consulting ... Oslo": one shared word and a town is
+    not an identity. The full name, short tokens included, has to appear before a place proves anything."""
+    p = profile(name="ARKWRIGHT X AS", org="813302632",
+                forretningsadresse={"poststed": "OSLO"},
+                **{"forretningsadresse.poststed": "OSLO", "forretningsadresse.kommune": "OSLO",
+                   "forretningsadresse.adresse": "Storgata 1", "forretningsadresse.postnummer": "0155"})
+    consultancy = ("Arkwright is a leading strategy and management consulting firm offering expertise in "
+                   "business transformation, with offices in Hamburg, London, Oslo and Stockholm.")
+    assert place_proof(p, consultancy) is None
+    # The company's own site, naming the entity as it is registered, still passes.
+    assert place_proof(p, "Arkwright X AS, Storgata 1, 0155 Oslo")
+
+
 def test_guessed_domain_needs_more_than_a_name(monkeypatch):
     p = profile()
     monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [

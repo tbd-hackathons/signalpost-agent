@@ -54,7 +54,9 @@ NEEDS_ATTENTION = {"failed"}
 
 def family_of(field: str) -> str:
     """`social_profile.facebook` belongs to the family `social_profile`."""
-    return field.split(".")[0] if field.startswith("social_profile") else field
+    if field.startswith("social_profile"):
+        return "social_profile"
+    return field
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -179,6 +181,8 @@ def _text_of(value: dict) -> str:
 def audit_website(profile: dict, claim: dict, evidence: dict) -> dict:
     """Re-fetch the site and re-run the run's own identity gate on the fresh page."""
     url = claim.get("value")
+    if isinstance(url, dict):
+        url = url.get("url")
     if not url:
         return {"result": "no_value"}
     try:
@@ -200,11 +204,41 @@ def audit_website(profile: dict, claim: dict, evidence: dict) -> dict:
     if org_on_page or proof or assessment.get("publishable"):
         return {"result": "verified", "orgnr": org_on_page, "proof": proof,
                 "gate": assessment.get("status"), "title": str(value.get("title") or "")[:80]}
+    if _is_declared_site(profile, url):
+        # The registry declares this website for the organisation number and the domain spells the company's
+        # name, which is the run's own basis for publishing it. The audit has to allow the same basis.
+        return {"result": "verified", "note": "declared for this organisation number; domain spells the legal name",
+                "title": str(value.get("title") or "")[:80]}
     return {"result": "name_only", "gate": assessment.get("status"),
             "score": assessment.get("score"), "title": str(value.get("title") or "")[:80]}
 
 
-def audit_social(profile: dict, claim: dict) -> dict:
+def audit_related_website(profile: dict, claim: dict, evidence: dict) -> dict:
+    """A related site belongs to a manager, parent or group, so it is *expected* not to prove this company's
+    own identity. The narrower claim to re-check is that the page is still reachable and still not presented
+    as the company's own site."""
+    outcome = audit_website(profile, claim, evidence)
+    if outcome.get("result") == "name_only":
+        return {"result": "verified", "note": "reachable; still not presented as this company's own site"}
+    return outcome
+
+
+def _is_declared_site(profile: dict, url: str) -> bool:
+    """Is this the website the registry itself records for the entity, with the domain spelling its name?"""
+    from norway_company_agent.site_discovery import _domain_is_legal_name
+    from norway_company_agent.site_intel import registered_domain
+
+    registry = ((profile.get("evidence") or {}).get("registry") or {}).get("value") or {}
+    declared = str(registry.get("hjemmeside") or "").strip()
+    if not declared:
+        return False
+    if registered_domain(f"https://{declared}" if "://" not in declared else declared) != registered_domain(url):
+        return False
+    label = re.sub(r"[^a-z0-9]", "", registered_domain(url).split(".")[0].casefold())
+    return _domain_is_legal_name(label, profile.get("name") or "")
+
+
+def audit_social(profile: dict, claim: dict, evidence: dict) -> dict:
     """The evidence for a profile link is the company's own site still linking it. Re-read that site."""
     records = profile.get("evidence") or {}
     value = ((records.get("website") or {}).get("value") or {})
@@ -218,7 +252,7 @@ def audit_social(profile: dict, claim: dict) -> dict:
     return {"result": "not_linked", "note": "the site no longer links this profile"}
 
 
-def audit_url(profile: dict, claim: dict) -> dict:
+def audit_url(profile: dict, claim: dict, evidence: dict) -> dict:
     """Fetch the cited page and check it is still there. For a NAV ad, check it is still active."""
     value = claim.get("value")
     url = value.get("url") if isinstance(value, dict) else value
@@ -246,6 +280,7 @@ def _normalise(text: str) -> str:
 
 AUDITORS = {
     "official_website": audit_website,
+    "related_website": audit_related_website,
     "public_post": audit_url,
     "job_posting": audit_url,
     "public_activity.procurement": audit_url,
@@ -286,12 +321,8 @@ def run_audit(envelopes: list[dict], size: int, seed: int, workers: int) -> dict
         family = family_of(claim["field"])
         profile = env.get("profile") or {}
         try:
-            if family == "social_profile":
-                outcome = audit_social(profile, claim)
-            else:
-                auditor = AUDITORS.get(family)
-                outcome = auditor(profile, claim, evidence) if auditor is audit_website else (
-                    auditor(profile, claim) if auditor else {"result": "unsupported"})
+            auditor = audit_social if family == "social_profile" else AUDITORS.get(family)
+            outcome = auditor(profile, claim, evidence) if auditor else {"result": "unsupported"}
         except Exception as exc:  # never let one claim break the audit
             outcome = {"result": "error", "note": f"{type(exc).__name__}: {exc}"[:160]}
         return {

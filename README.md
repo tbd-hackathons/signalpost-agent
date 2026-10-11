@@ -22,7 +22,7 @@ alone never attaches anything; "not checked" is never reported as zero.
 
 | Area | Addition | Identity rule |
 |---|---|---|
-| Website | Candidates from the registry website and e-mail domain, Wikidata (P2333) and NAV employer homepages, DNS-checked legal-name `.no` domains, and (with a key) a search API | a guessed, shared or search-found domain publishes only with the organisation number, registry contact details, or full legal name plus registered place on the site |
+| Website | Candidates from the registry website and e-mail domain, Wikidata (P2333) and NAV employer homepages, DNS-checked legal-name `.no`/`.com` domains (tried even when the registry offered a candidate that turned out dead or unproven), and (with a key) a search API | a guessed, shared or search-found domain publishes only with the organisation number, registry contact details, or full legal name plus registered place on the site |
 | Group sites | A registry-linked site that does not present itself as the company's own (manager, parent, group) | published as `related_website`; `official_website` is `ambiguous`; its social links, jobs and posts are not attributed |
 | Social profiles | Links on the verified own site, plus Wikidata profiles recorded against the organisation number | own site or organisation number |
 | Jobs | Active NAV ads (arbeidsplassen.nav.no) and the company's own careers page (schema.org `JobPosting`, recruiting-system links) | NAV names the employer by organisation number (company or registered sub-unit); each ad is re-checked live before publishing; a partial index can never assert "no jobs" |
@@ -91,6 +91,13 @@ found each website and why the other candidates were rejected, how many claims a
 `not_available`, and the share of audited claims that still reproduce when the source is re-fetched. The
 audit sample is seeded, so the same run gives the same sample.
 
+Two companion scripts answer questions about the discovery ceiling rather than about one run:
+
+```bash
+uv run python scripts/dns_funnel.py          # what the registry offers, and how many name-derived domains exist
+uv run python scripts/name_domain_probe.py   # do those domains pass the identity gate, and how often
+```
+
 ## Tests
 
 ```bash
@@ -103,6 +110,7 @@ Files written for this entry are MIT: `search-rs/`; in `src/norway_company_agent
 `site_discovery.py`, `site_intel.py`, `nav_feed.py`, `nav_jobs.py`, `claims_view.py`, `brief.py`, `changes.py`,
 `wikidata.py`, `procurement.py`, `search_client.py`, `search_enrich.py`, `llm_extract.py`; in `scripts/`:
 `nav_active_index.py`, `wikidata_snapshot.py`, `ted_snapshot.py`, `build_report.py`, `scorecard.py`,
-`fetch_search_bin.sh`, `collect_career_pages.py`, `eval_local_model.py`, and the `run_signalpost.py` changes;
-the tests for those files; `Makefile`, see [LICENSE](LICENSE). The rest of the code and the documents under `docs/` come from
+`dns_funnel.py`, `name_domain_probe.py`, `fetch_search_bin.sh`, `collect_career_pages.py`,
+`eval_local_model.py`, and the `run_signalpost.py` changes; the tests for those files; `Makefile`, see
+[LICENSE](LICENSE). The rest of the code and the documents under `docs/` come from
 the Builderr Signalpost starter kit and are used under the challenge terms; they are not covered by the MIT license.

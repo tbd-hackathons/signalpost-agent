@@ -141,7 +141,7 @@ STRONG_OWN_REASONS = {"organisation number on the homepage", "domain name spells
 
 
 def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, max_candidates: int = 3,
-                    guess: bool = True, extra_websites: list[str] | None = None,
+                    max_guesses: int = 3, guess: bool = True, extra_websites: list[str] | None = None,
                     search_websites: list[str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     """`extra_websites`: sites an organisation-number-keyed source (Wikidata, NAV employer) records for this company.
 
@@ -149,7 +149,8 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
     candidates already failed in the first pass) and need the same strict proof as a guessed domain.
     """
     metrics: dict[str, Any] = {"requests": 0, "bytes": 0, "latencies_ms": []}
-    candidates = [] if search_websites else website_candidates(profile, domain_counts, guess=guess)
+    candidates = [] if search_websites else website_candidates(profile, domain_counts, guess=guess,
+                                                              max_guesses=max_guesses)
     for url in search_websites or []:
         host = (urllib.parse.urlparse(url).hostname or "").casefold().removeprefix("www.")
         if host and host not in {c["host"] for c in candidates}:
@@ -167,7 +168,11 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
                                          "source": "organisation_number_keyed_source",
                                          "reason": "Wikidata or NAV records this website for the organisation number",
                                          "requires_strict_proof": False})
-    candidates = candidates[:max_candidates]
+    # Declared and guessed candidates get their own budget: a company with several registry candidates must
+    # not use up the slots that a name-derived domain needs, and guesses are capped because each one costs a fetch.
+    declared = [c for c in candidates if c["source"] != "legal_name_domain_guess"]
+    guesses = [c for c in candidates if c["source"] == "legal_name_domain_guess"]
+    candidates = declared[:max_candidates] + guesses[:max_guesses]
     attempts: list[dict[str, Any]] = []
     fallback: dict[str, Any] | None = None
 
@@ -241,7 +246,9 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
         # A candidate was reachable but not proven: keep it as not published.
         value = fallback.get("value") or {}
         value["social_links"] = []
-    fallback.setdefault("value", {})
-    if isinstance(fallback.get("value"), dict):
-        fallback["value"]["discovery"] = {"selected": None, "attempts": attempts, "method": "site_discovery_v1"}
+    if not isinstance(fallback.get("value"), dict):
+        # `setdefault` leaves an explicit None in place, which would silently drop the attempts on a blocked or
+        # failed candidate. Every attempt is kept, accepted or not (agent playbook, "save every attempt").
+        fallback["value"] = {}
+    fallback["value"]["discovery"] = {"selected": None, "attempts": attempts, "method": "site_discovery_v1"}
     return fallback, metrics
