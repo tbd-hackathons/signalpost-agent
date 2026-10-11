@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from norway_company_agent.identity import apply_website_identity_gate  # noqa: E402
+from norway_company_agent.nav_jobs import entity_numbers  # noqa: E402
 from norway_company_agent.site_candidates import contact_proof  # noqa: E402
 from norway_company_agent.site_intel import SiteFetcher  # noqa: E402
 from norway_company_agent.website import fetch_website  # noqa: E402
@@ -274,6 +275,49 @@ def audit_url(profile: dict, claim: dict, evidence: dict) -> dict:
     return {"result": "verified", "note": "page is live"}
 
 
+TED_SEARCH = "https://api.ted.europa.eu/v3/notices/search"
+
+
+def _ted_notice(publication_number: str) -> dict | None:
+    import requests
+
+    body = {"query": f"publication-number={publication_number}", "limit": 1,
+            "fields": ["publication-number", "notice-title", "buyer-identifier", "winner-identifier"]}
+    response = requests.post(TED_SEARCH, json=body, timeout=60,
+                             headers={"User-Agent": "signalpost-agent/0.2 (+https://github.com/tbd-hackathons/signalpost-agent)"})
+    response.raise_for_status()
+    notices = response.json().get("notices") or []
+    return notices[0] if notices else None
+
+
+def audit_procurement(profile: dict, claim: dict, evidence: dict) -> dict:
+    """Re-read the notice from TED's search API: the notice page is rendered by JavaScript, so its HTML never
+    carries the title. Verified when the notice still names one of the company's numbers in the claimed role."""
+    value = claim.get("value") or {}
+    number = str(value.get("url") or "").rstrip("/").rsplit("/", 1)[-1]
+    if not re.fullmatch(r"\d+-\d{4}", number):
+        return {"result": "no_value"}
+    try:
+        notice = _ted_notice(number)
+    except Exception as exc:
+        return {"result": "error", "note": f"{type(exc).__name__}: {exc}"[:160]}
+    if not notice:
+        return {"result": "gone", "note": f"TED no longer returns notice {number}"}
+    key = "winner-identifier" if value.get("role") == "supplier_awarded" else "buyer-identifier"
+    ids = {str(x).replace(" ", "") for x in notice.get(key) or []}
+    try:
+        numbers = set(entity_numbers(profile)[0])
+    except Exception:
+        numbers = set()
+    numbers.add(str(profile.get("organisation_number") or ""))
+    if not ids & numbers:
+        return {"result": "not_linked", "note": f"notice {number} no longer names this organisation as {key.split('-')[0]}"}
+    titles = " ".join(str(v) for v in (notice.get("notice-title") or {}).values())
+    if value.get("title") and _normalise(str(value["title"]))[:40] not in _normalise(titles):
+        return {"result": "changed", "note": "notice names the organisation but the cited title differs"}
+    return {"result": "verified", "note": f"TED API: notice {number} names organisation number as {key.split('-')[0]}"}
+
+
 def _normalise(text: str) -> str:
     return re.sub(r"\s+", " ", text).casefold()
 
@@ -283,7 +327,7 @@ AUDITORS = {
     "related_website": audit_related_website,
     "public_post": audit_url,
     "job_posting": audit_url,
-    "public_activity.procurement": audit_url,
+    "public_activity.procurement": audit_procurement,
     "public_activity.news_mention": audit_url,
 }
 
