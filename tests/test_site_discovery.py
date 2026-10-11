@@ -221,3 +221,30 @@ def test_a_guessed_site_that_is_not_ours_is_still_dropped(monkeypatch):
                                        "reasons": ["guessed domain needs proof"]}})
     result, _ = site_discovery.resolve_website(p, Counter())
     assert not result.get("value", {}).get("related_only")
+
+
+def test_declared_site_redirecting_to_a_parking_page_is_not_a_related_site(monkeypatch):
+    """ALCE SPRINKLER AS: the registry website now redirects to the registrar's parking page. That is no
+    relationship at all, so it must not be published as a manager, parent or group site."""
+    p = profile(name="ALCE SPRINKLER AS")
+    monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [
+        {"url": "https://alcesprinkler.no/", "host": "alcesprinkler.no", "source": "registry_website",
+         "reason": "registry website field", "requires_strict_proof": False}])
+    record = {"status": "available", "source_url": "https://www.webhuset.no/parkering",
+              "retrieved_at": "2026-10-11T00:00:00Z", "content_sha256": "c" * 64,
+              "value": {"final_url": "https://www.webhuset.no/parkering", "registered_domain": "webhuset.no",
+                        "title": "Domene er parkert | Webhuset", "main_text_excerpt": "Dette domenet er parkert.",
+                        "pages": []}}
+    monkeypatch.setattr(site_discovery, "fetch_website",
+                        lambda url, **k: (record, {"requests": 1, "bytes": 1, "latencies_ms": [1]}))
+    monkeypatch.setattr(site_discovery, "apply_website_identity_gate", lambda profile, rec: {
+        "website": rec, "assessment": {"status": "related_or_uncertain", "score": 0.3, "publishable": False,
+                                       "reasons": ["registry-linked URL lacks strong exact-entity identity evidence"]}})
+    result, _ = site_discovery.resolve_website(p, Counter())
+    assert not result.get("value", {}).get("related_only")
+
+
+def test_parked_page_on_the_declared_domain_is_not_a_related_site():
+    cand = {"host": "example.no"}
+    assert not site_discovery._related_link_holds(cand, {"final_url": "https://example.no/", "title": "Domenet er til salgs"})
+    assert site_discovery._related_link_holds(cand, {"final_url": "https://www.example.no/", "title": "Vestbo forvaltning"})

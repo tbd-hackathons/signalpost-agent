@@ -140,6 +140,28 @@ DECLARED_SOURCES = {"registry_website", "organisation_number_keyed_source"}
 STRONG_OWN_REASONS = {"organisation number on the homepage", "domain name spells the legal name"}
 
 
+PLACEHOLDER_PAGE = re.compile(
+    r"parkert|parked|domain (?:is )?for sale|til salgs|kjøp (?:dette )?domenet|buy this domain|coming soon|"
+    r"under construction|under oppbygging|default (?:web )?page|it works!|welcome to nginx|account suspended|"
+    r"webhotell|this domain", re.I)
+
+
+def _related_link_holds(cand: dict[str, Any], value: dict[str, Any]) -> bool:
+    """A declared site is only a related site when the page is still on the declared domain and is a real site.
+
+    A lapsed registry website often redirects to the registrar's parking page (webhuset.no/parkering): that
+    is neither the company nor a manager, parent or group, so labelling it related would invent a relationship.
+    """
+    from .site_intel import registered_domain
+
+    final_url = str(value.get("final_url") or "")
+    declared = registered_domain("https://" + str(cand.get("host") or "") + "/")
+    if not final_url or registered_domain(final_url) != declared:
+        return False
+    page_text = " ".join(str(value.get(k) or "") for k in ("title", "main_text_excerpt"))[:2000]
+    return not PLACEHOLDER_PAGE.search(page_text)
+
+
 def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, max_candidates: int = 3,
                     max_guesses: int = 3, guess: bool = True, extra_websites: list[str] | None = None,
                     search_websites: list[str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -243,7 +265,8 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
             site["value"] = value
             return site, metrics
         if (not accept and record.get("status") == "available" and not cand["requires_strict_proof"]
-                and cand["source"] in DECLARED_SOURCES and related_fallback is None):
+                and cand["source"] in DECLARED_SOURCES and related_fallback is None
+                and _related_link_holds(cand, value)):
             reasons = [str(r) for r in assessment.get("reasons") or []]
             reasons.append(f"the registry records {cand['host']} for this organisation number, but the site "
                            "does not present itself as this company's own (a manager, parent or group site)")
