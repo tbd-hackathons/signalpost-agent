@@ -52,7 +52,7 @@ Every attempt, accepted or rejected, is kept in the profile with its reason.
 |---|---|---|
 | `data/wikidata-no-orgnr.jsonl.gz` | `scripts/wikidata_snapshot.py` | websites still pass the website identity gate at run time |
 | `data/ted-no-notices.jsonl.gz` | `make ted-snapshot` | notices are dated; the snapshot date is recorded on each claim |
-| `data-cache/nav-feed/active-ads.jsonl.gz` | `make nav-index` | a starting list only; every matched ad is re-checked with NAV during the run |
+| `data-cache/nav-feed/active-ads.jsonl.gz` | shipped as `data/nav-active-ads.jsonl.gz` (12,233 active ads, built 11 Oct 2026, copied in by `make setup`); rebuild with `make nav-index` | a starting list only: every matched ad is re-checked with NAV during the run, and ads newer than the snapshot are read from NAV's feed |
 | `data-cache/search/` | the search tool | results are candidates; cache TTL 7 days |
 
 ### Secrets

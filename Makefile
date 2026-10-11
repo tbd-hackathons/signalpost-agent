@@ -9,6 +9,9 @@ setup:
 	uv sync --frozen
 	mkdir -p data-cache
 	test -f $(BULK) || curl -fL 'https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv' -o $(BULK)
+	# Seed the NAV job-ad index from the shipped snapshot; the run catches up on newer ads from NAV's feed.
+	mkdir -p $(NAV)
+	test -f $(NAV)/active-ads.jsonl.gz || { cp data/nav-active-ads.jsonl.gz $(NAV)/active-ads.jsonl.gz && cp data/nav-active-ads.meta.json $(NAV)/active-ads.meta.json; }
 	$(MAKE) search-bin
 # The Rust search tool: built from source when cargo exists, else the release binary checked against SHA256SUMS.
 # Without either, the run still completes and search-backed fields report "not checked".

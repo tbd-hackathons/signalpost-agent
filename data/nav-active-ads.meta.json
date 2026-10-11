@@ -1,0 +1,15 @@
+{
+  "built_at": "2026-10-11T04:21:26.842882Z",
+  "source": "https://arbeidsplassen.nav.no/stillinger/sitemap.xml",
+  "sitemap_ads": 13537,
+  "ads_without_details": 0,
+  "ads_without_employer_number": 203,
+  "partial": false,
+  "feed_next_url": "/api/v1/feed/b489a60f-0f58-4326-badf-f9cecaf5a6e2",
+  "active_ads": 12233,
+  "employers": 7913,
+  "detail_requests": 203,
+  "detail_failures": 0,
+  "requests": 203,
+  "detail_source": "web"
+}
