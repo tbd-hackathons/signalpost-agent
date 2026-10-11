@@ -16,7 +16,7 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from .identity import apply_website_identity_gate
-from .site_candidates import contact_proof, name_tokens, place_proof, website_candidates
+from .site_candidates import contact_proof, place_proof, website_candidates
 from .website import fetch_website
 
 
@@ -140,30 +140,6 @@ DECLARED_SOURCES = {"registry_website", "organisation_number_keyed_source"}
 STRONG_OWN_REASONS = {"organisation number on the homepage", "domain name spells the legal name"}
 
 
-def _full_name_domain_proof(profile: dict[str, Any], value: dict[str, Any], candidate: dict[str, Any]) -> str | None:
-    """A `.no` domain that spells the company's *complete* legal name, on a page that states that name too.
-
-    Two independent statements of the same full name — the domain and the site's own description — is strong
-    evidence, and `.no` is Norway-scoped, so a different entity would have to share both the legal name and
-    its domain. Partial-name domains stay on the strict path, because that is exactly how "ARKWRIGHT X AS"
-    once matched an unrelated Arkwright at arkwright.com.
-    """
-    from .site_intel import registered_domain
-
-    domain = registered_domain(str(value.get("final_url") or candidate.get("url") or ""))
-    if not domain.endswith(".no"):
-        return None
-    label = re.sub(r"[^a-z0-9]", "", domain.split(".")[0].casefold())
-    joined = "".join(name_tokens(profile.get("name") or ""))
-    if len(joined) < 5 or label not in {joined, joined.replace("aa", "a")}:
-        return None
-    page = "".join(re.sub(r"[^a-z0-9]", "", _fold(str(value.get(key) or "")))
-                   for key in ("title", "description", "identity_text_excerpt"))
-    if joined not in page and joined.replace("aa", "a") not in page:
-        return None
-    return f"the .no domain spells the company's complete legal name '{joined}' and the site states it"
-
-
 PLACEHOLDER_PAGE = re.compile(
     r"\b(?:domene(?:t)?|domain|nettsted(?:et)?|website)\b[^.\n]{0,30}\b(?:er |is )?(?:parkert|parked|til salgs|for sale)\b|"
     r"\bis parked\b|kjøp (?:dette )?domenet|buy this domain|default web page|welcome to nginx|account suspended", re.I)
@@ -249,8 +225,6 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
                 proof = place_proof(profile, _page_text(value))
             if not org_on_page and not proof and assessment.get("score", 0) >= 0.95:
                 proof = _deeper_proof(profile, value, metrics)
-            if not org_on_page and not proof and assessment.get("score", 0) >= 0.95:
-                proof = _full_name_domain_proof(profile, value, cand)
             accept = org_on_page or bool(proof)
         else:
             accept = bool(assessment.get("publishable")) or bool(proof)
