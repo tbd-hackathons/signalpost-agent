@@ -34,7 +34,10 @@ def contract_view(profile: dict[str, Any]) -> dict[str, Any]:
     website = records.get("website") or {}
     web = website.get("value") or {}
     assessment = web.get("identity_assessment") or {}
-    verified = website.get("status") == "available" and assessment.get("publishable")
+    # A reachable site the registry records for this organisation number that does not present itself as the
+    # company's own ("related_only") is published as a labelled related site, not dropped.
+    published_related = bool(web.get("related_only")) and website.get("status") == "available"
+    verified = website.get("status") == "available" and (assessment.get("publishable") or published_related)
     own = own_site_reason(profile, web) if verified else None
     if verified and not own:
         # The registry links the company to this site, but it is a manager's, parent's or group site:

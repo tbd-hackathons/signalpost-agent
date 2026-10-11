@@ -178,3 +178,46 @@ def test_deeper_proof_reads_contact_page_for_org_number(monkeypatch):
     assert metrics["requests"] == 1
     profile["organisation_number"] = "987654321"
     assert _deeper_proof(profile, value, metrics) is None
+
+
+def test_declared_site_that_is_not_ours_is_published_as_related(monkeypatch):
+    """The registry records a website that turns out to be the housing co-operative's manager. The link is
+    real, so it must be reported as a related site rather than dropped."""
+    p = profile(name="BORETTSLAGET VIKENSGATE 20")
+    monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [
+        {"url": "https://vestbo.no/", "host": "vestbo.no", "source": "registry_website",
+         "reason": "registry website field", "requires_strict_proof": False}])
+    record = {"status": "available", "source_url": "https://vestbo.no/", "retrieved_at": "2026-10-11T00:00:00Z",
+              "content_sha256": "a" * 64,
+              "value": {"final_url": "https://vestbo.no/", "registered_domain": "vestbo.no", "title": "Vestbo",
+                        "main_text_excerpt": "Vi forvalter borettslag og sameier i Bergen.", "pages": [],
+                        "social_links": [{"platform": "facebook", "url": "https://facebook.com/vestbo"}]}}
+    monkeypatch.setattr(site_discovery, "fetch_website",
+                        lambda url, **k: (record, {"requests": 1, "bytes": 1, "latencies_ms": [1]}))
+    monkeypatch.setattr(site_discovery, "apply_website_identity_gate", lambda profile, rec: {
+        "website": rec, "assessment": {"status": "related_or_uncertain", "score": 0.3, "publishable": False,
+                                       "reasons": ["registry-linked URL lacks strong exact-entity identity evidence"]}})
+    result, _ = site_discovery.resolve_website(p, Counter())
+    assert result["status"] == "available"
+    assert result["value"]["related_only"] is True
+    assert result["value"]["social_links"] == []
+    assert any("does not present itself as this company's own" in r for r in result["value"]["identity_assessment"]["reasons"])
+
+
+def test_a_guessed_site_that_is_not_ours_is_still_dropped(monkeypatch):
+    """Only a site the registry declares earns the related label. A rejected name guess is just wrong."""
+    p = profile(name="VINSNESBAKK ELEKTRO AS")
+    monkeypatch.setattr(site_discovery, "website_candidates", lambda *a, **k: [
+        {"url": "https://vinsnesbakk.no/", "host": "vinsnesbakk.no", "source": "legal_name_domain_guess",
+         "reason": "guess", "requires_strict_proof": True}])
+    record = {"status": "available", "source_url": "https://vinsnesbakk.no/", "retrieved_at": "2026-10-11T00:00:00Z",
+              "content_sha256": "b" * 64,
+              "value": {"final_url": "https://vinsnesbakk.no/", "registered_domain": "vinsnesbakk.no",
+                        "title": "Vinsnesbakk", "main_text_excerpt": "noe annet", "pages": []}}
+    monkeypatch.setattr(site_discovery, "fetch_website",
+                        lambda url, **k: (record, {"requests": 1, "bytes": 1, "latencies_ms": [1]}))
+    monkeypatch.setattr(site_discovery, "apply_website_identity_gate", lambda profile, rec: {
+        "website": rec, "assessment": {"status": "related_or_uncertain", "score": 0.3, "publishable": False,
+                                       "reasons": ["guessed domain needs proof"]}})
+    result, _ = site_discovery.resolve_website(p, Counter())
+    assert not result.get("value", {}).get("related_only")

@@ -175,6 +175,11 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
     candidates = declared[:max_candidates] + guesses[:max_guesses]
     attempts: list[dict[str, Any]] = []
     fallback: dict[str, Any] | None = None
+    # A website the registry records for this organisation number that is reachable but does not present
+    # itself as the company's own: a housing co-operative's manager, a subsidiary's parent, an accountant.
+    # The registry links them, so the link is worth reporting — as a labelled related site, never collapsed
+    # into the company's own website.
+    related_fallback: dict[str, Any] | None = None
 
     for cand in candidates:
         record, m = fetch_website(cand["url"])
@@ -237,8 +242,26 @@ def resolve_website(profile: dict[str, Any], domain_counts: Counter | None, *, m
             value["discovery"] = {"selected": attempt, "attempts": attempts, "method": "site_discovery_v1"}
             site["value"] = value
             return site, metrics
+        if (not accept and record.get("status") == "available" and not cand["requires_strict_proof"]
+                and cand["source"] in DECLARED_SOURCES and related_fallback is None):
+            reasons = [str(r) for r in assessment.get("reasons") or []]
+            reasons.append(f"the registry records {cand['host']} for this organisation number, but the site "
+                           "does not present itself as this company's own (a manager, parent or group site)")
+            value["related_only"] = True
+            value["identity_assessment"] = {**assessment, "publishable": False, "reasons": reasons}
+            value["social_links"] = []
+            record["value"] = value
+            related_fallback = record
         fallback = fallback or site
 
+    if related_fallback is not None:
+        # Nothing of the company's own was proven, but the registry does link it to this reachable site:
+        # report the link as related rather than dropping what the register itself declares. Reaching here
+        # means no candidate was accepted, so this is the most informative record left.
+        value = related_fallback["value"]
+        value["discovery"] = {"selected": None, "attempts": attempts, "method": "site_discovery_v1",
+                              "related_fallback": True}
+        return related_fallback, metrics
     if fallback is None:
         fallback, _ = fetch_website(None)  # the starter's standard not_found evidence record
         fallback["note"] = "No website candidate from registry website, registry e-mail domain or legal-name domain"
