@@ -341,6 +341,21 @@ def _extraction_state(text: str, soup: BeautifulSoup) -> str:
     return "js_fallback_candidate" if len(text.strip()) < 100 and len(soup.select("script[src]")) >= 2 else "static_complete"
 
 
+def http_fallback_url(normalized: str, supplied_scheme: bool) -> str | None:
+    """The plain-http address to try when https could not connect.
+
+    Many small Norwegian sites still serve only plain http (port 443 refuses, resets or presents a broken
+    certificate). A homepage given without a scheme, or a bare https homepage (as guessed and declared
+    candidates are), gets one http attempt; the identity gate still decides whether it is the company's site.
+    """
+    if not normalized.startswith("https://"):
+        return None
+    parsed = urllib.parse.urlparse(normalized)
+    if supplied_scheme and (parsed.path not in {"", "/"} or parsed.query):
+        return None
+    return "http://" + normalized[len("https://"):]
+
+
 def fetch_website(url: str | None, *, timeout: float = 15.0, max_bytes: int = 2_000_000) -> tuple[dict[str, Any], dict[str, Any]]:
     supplied_url = str(url or "").strip()
     supplied_scheme = bool(re.match(r"^https?://", supplied_url, re.I))
@@ -418,9 +433,10 @@ def fetch_website(url: str | None, *, timeout: float = 15.0, max_bytes: int = 2_
         status = "not_found" if exc.code in {404, 410} else "source_error"
         return evidence("website", status, "registry_linked_company_website", normalized, note=f"HTTP {exc.code}"), {"requests": 2, "bytes": 0, "latencies_ms": [elapsed]}
     except urllib.error.URLError as exc:
-        if not supplied_scheme and normalized.startswith("https://"):
+        retry_url = http_fallback_url(normalized, supplied_scheme)
+        if retry_url:
             first_elapsed = int((time.monotonic() - started) * 1000)
-            record, metrics = fetch_website("http://" + supplied_url, timeout=timeout, max_bytes=max_bytes)
+            record, metrics = fetch_website(retry_url, timeout=timeout, max_bytes=max_bytes)
             metrics["requests"] += 2
             metrics["latencies_ms"].insert(0, first_elapsed)
             return record, metrics
