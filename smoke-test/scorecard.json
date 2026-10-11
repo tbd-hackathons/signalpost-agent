@@ -1,0 +1,946 @@
+{
+ "run_id": "smoke-100",
+ "envelopes": "out/smoke-100-envelopes.jsonl",
+ "companies": 100,
+ "available_claims": 85,
+ "failed_claims": 107,
+ "website_company_rate": 0.2,
+ "coverage": {
+  "official_website": {
+   "label": "Verified website",
+   "companies_covered": 20,
+   "companies": [
+    "821219272",
+    "891549202",
+    "911846241",
+    "916518749",
+    "916897820",
+    "919058617",
+    "925513105",
+    "934339924",
+    "936290078",
+    "936560059",
+    "983453341",
+    "984324219",
+    "986724311",
+    "988131709",
+    "989244388",
+    "990448264",
+    "990956960",
+    "994243101",
+    "997820347",
+    "998530776"
+   ],
+   "claims_total": 100,
+   "claims_available": 20,
+   "states": {
+    "available": 20,
+    "not_available": 44,
+    "blocked": 6,
+    "ambiguous": 8,
+    "failed": 22
+   }
+  },
+  "related_website": {
+   "label": "Registry-linked related site",
+   "companies_covered": 8,
+   "companies": [
+    "971275685",
+    "979483953",
+    "979752954",
+    "982793378",
+    "988716316",
+    "994014161",
+    "994812688",
+    "996019489"
+   ],
+   "claims_total": 8,
+   "claims_available": 8,
+   "states": {
+    "available": 8
+   }
+  },
+  "social_profile": {
+   "label": "Company-owned profiles",
+   "companies_covered": 8,
+   "companies": [
+    "821219272",
+    "916897820",
+    "919058617",
+    "936560059",
+    "984324219",
+    "989244388",
+    "990956960",
+    "997820347"
+   ],
+   "claims_total": 18,
+   "claims_available": 18,
+   "states": {
+    "available": 18
+   }
+  },
+  "job_posting": {
+   "label": "Job ads",
+   "companies_covered": 1,
+   "companies": [
+    "936290078"
+   ],
+   "claims_total": 100,
+   "claims_available": 1,
+   "states": {
+    "available": 1,
+    "not_available": 99
+   }
+  },
+  "public_post": {
+   "label": "Dated posts on the own site",
+   "companies_covered": 6,
+   "companies": [
+    "891549202",
+    "925513105",
+    "934339924",
+    "936290078",
+    "988131709",
+    "989244388"
+   ],
+   "claims_total": 38,
+   "claims_available": 38,
+   "states": {
+    "available": 38
+   }
+  },
+  "public_activity.procurement": {
+   "label": "Public tenders",
+   "companies_covered": 0,
+   "companies": [],
+   "claims_total": 100,
+   "claims_available": 0,
+   "states": {
+    "not_available": 100
+   }
+  },
+  "public_activity.news_mention": {
+   "label": "News articles",
+   "companies_covered": 0,
+   "companies": [],
+   "claims_total": 100,
+   "claims_available": 0,
+   "states": {
+    "not_available": 15,
+    "failed": 85
+   }
+  }
+ },
+ "funnel": {
+  "found_by": {
+   "registry_website": 14,
+   "legal_name_domain_guess": 9,
+   "registry_email_domain": 1,
+   "registry_email_domain_shared": 1
+  },
+  "attempts": {
+   "registry_website": 20,
+   "legal_name_domain_guess": 142,
+   "registry_email_domain": 4,
+   "registry_email_domain_shared": 5
+  },
+  "accepted": {
+   "registry_website": 14,
+   "legal_name_domain_guess": 9,
+   "registry_email_domain": 1,
+   "registry_email_domain_shared": 1
+  },
+  "rejection_reasons": {
+   "name match only, no registry proof on the site": 92
+  },
+  "attempts_total": 171,
+  "acceptance_rate": 0.14619883040935672,
+  "declared_available": {
+   "registry website field": 20,
+   "neither": 67,
+   "registry e-mail only": 13
+  },
+  "published_by_source": {
+   "registry website field": 14,
+   "neither": 9,
+   "registry e-mail only": 2
+  }
+ },
+ "audit": {
+  "requested": 60,
+  "audited": 60,
+  "seed": 0,
+  "by_family": {
+   "job_posting": {
+    "audited": 1,
+    "verified": 1,
+    "precision": 1.0,
+    "outcomes": {
+     "verified": 1
+    }
+   },
+   "official_website": {
+    "audited": 13,
+    "verified": 13,
+    "precision": 1.0,
+    "outcomes": {
+     "verified": 13
+    }
+   },
+   "public_post": {
+    "audited": 27,
+    "verified": 27,
+    "precision": 1.0,
+    "outcomes": {
+     "verified": 27
+    }
+   },
+   "related_website": {
+    "audited": 6,
+    "verified": 6,
+    "precision": 1.0,
+    "outcomes": {
+     "verified": 6
+    }
+   },
+   "social_profile": {
+    "audited": 13,
+    "verified": 13,
+    "precision": 1.0,
+    "outcomes": {
+     "verified": 13
+    }
+   }
+  },
+  "findings": [],
+  "results": [
+   {
+    "organisation_number": "988716316",
+    "name": "TORSHOVGATA EIENDOM AS",
+    "field": "related_website",
+    "family": "related_website",
+    "value": {
+     "url": "https://fredensborg.no/",
+     "title": "Fredensborg",
+     "relationship": "registry-linked site of a manager, parent or group company"
+    },
+    "result": "verified",
+    "note": "reachable; still not presented as this company's own site"
+   },
+   {
+    "organisation_number": "990956960",
+    "name": "AUDIOLAND AS",
+    "field": "social_profile.instagram",
+    "family": "social_profile",
+    "value": "https://instagram.com/audiolandmusic",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "984324219",
+    "name": "ARCTIC BLUE AS",
+    "field": "social_profile.linkedin",
+    "family": "social_profile",
+    "value": "https://linkedin.com/company/arcticblueas",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "891549202",
+    "name": "TREDJE BOLIGSEKTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Leie-til-eie",
+     "url": "https://www.hellvikhage.no/post/leie-til-eie",
+     "published": "2023-08-01T16:30:06.070Z"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "989244388",
+    "name": "PERSONALOMSORG AS",
+    "field": "social_profile.x",
+    "family": "social_profile",
+    "value": "https://x.com/Personalomsorg",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "934339924",
+    "name": "YOB AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://yob.no/",
+    "result": "verified",
+    "orgnr": true,
+    "proof": null,
+    "gate": "exact",
+    "title": "Rørlegger til fastpris — uten overraskelser | YOB"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Sirkulære råvarer &#8211; Sand, SBR og TPE; miljø, funksjon og økonomi",
+     "url": "https://tebe-sport.no/sirkulaere-ravarer-sand-sbr-og-tpe-miljo-funksjon-og-okonomi/",
+     "published": "2026-03-03T05:40:24+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "979752954",
+    "name": "FOTBALLKLUBBEN MJØLNER",
+    "field": "related_website",
+    "family": "related_website",
+    "value": {
+     "url": "https://fkmjolner.no/",
+     "title": "Forside - FK Mjølner",
+     "relationship": "registry-linked site of a manager, parent or group company"
+    },
+    "result": "verified",
+    "note": "reachable; still not presented as this company's own site"
+   },
+   {
+    "organisation_number": "986724311",
+    "name": "VINSNESBAKK ELEKTRO AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://vinsnesbakkelektro.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "Start | Vinsnesbakk Elektro AS"
+   },
+   {
+    "organisation_number": "916897820",
+    "name": "I TRONSMO AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://www.tronsmo.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "TRONSMO"
+   },
+   {
+    "organisation_number": "989244388",
+    "name": "PERSONALOMSORG AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Hvordan snakke med barn om at Kong Harald er død",
+     "url": "https://personalomsorg.no/hvordan-snakke-med-barn-om-kong-harald-er-dod",
+     "published": "2026-08-28T06:45:12+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "989244388",
+    "name": "PERSONALOMSORG AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://personalomsorg.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "| Personalomsorg"
+   },
+   {
+    "organisation_number": "916897820",
+    "name": "I TRONSMO AS",
+    "field": "social_profile.instagram",
+    "family": "social_profile",
+    "value": "https://instagram.com/tronsmobok",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "919058617",
+    "name": "GLÅME AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://www.glaame.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": "registry e-mail address appears on the site",
+    "gate": "exact",
+    "title": "hemmat"
+   },
+   {
+    "organisation_number": "990448264",
+    "name": "HØYSET PANORAMA VASET AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://www.hoyset.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "Hyttetomter på fjellet - Vaset i Valdres  - Høyset Panorama"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Guida ai metodi di deposito e prelievo su Fonbet Italia casino",
+     "url": "https://www.lumisafe.no/2026/10/09/guida-ai-metodi-di-deposito-e-prelievo-su-fonbet-italia-casino/",
+     "published": "2026-10-09T11:10:55+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "984324219",
+    "name": "ARCTIC BLUE AS",
+    "field": "social_profile.facebook",
+    "family": "social_profile",
+    "value": "https://facebook.com/arcticblueas",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "En æra er over – og en ny begynner",
+     "url": "https://tebe-sport.no/en-aera-er-over-og-en-ny-begynner/",
+     "published": "2025-09-26T11:15:19+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "979483953",
+    "name": "SAMEIET SUHMSGATE 3",
+    "field": "related_website",
+    "family": "related_website",
+    "value": {
+     "url": "https://www.obf.no/",
+     "title": "Boligforvaltning og regnskapstjenester i Oslo og omegn | OBF",
+     "relationship": "registry-linked site of a manager, parent or group company"
+    },
+    "result": "verified",
+    "note": "reachable; still not presented as this company's own site"
+   },
+   {
+    "organisation_number": "934339924",
+    "name": "YOB AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Enova-støtte smart varmtvannsbereder — slik søker du | YOB",
+     "url": "https://yob.no/artikler/enova-stotte-smart-bereder/",
+     "published": "2026-06-04"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "996019489",
+    "name": "LUMI SERVICES AS",
+    "field": "related_website",
+    "family": "related_website",
+    "value": {
+     "url": "https://lumiinvestor.com/",
+     "title": "Lumi – Lumi Education Group Investor Relations",
+     "relationship": "registry-linked site of a manager, parent or group company"
+    },
+    "result": "verified",
+    "note": "reachable; still not presented as this company's own site"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Rehabilitering av ballbinger med lek, økonomi og miljø i fokus",
+     "url": "https://tebe-sport.no/nytt-produkt-og-tjeneste-for-rehabilitering-av-ballbinger/",
+     "published": "2026-01-12T20:02:22+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "891549202",
+    "name": "TREDJE BOLIGSEKTOR AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://www.hellvikhage.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "Shared Living - Tredje Boligsektor AS - Nesodden, Norge - Hellvik Hage"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Goldbet Casino: szybkie wypłaty i bezpieczne transakcje dla graczy",
+     "url": "https://www.lumisafe.no/2026/10/08/goldbet-casino-szybkie-wyplaty-i-bezpieczne-transakcje-dla-graczy/",
+     "published": "2026-10-08T09:45:58+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "936290078",
+    "name": "MALANGEN VETERINÆRKONTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Godbiter og kosttilskudd",
+     "url": "https://malvet.no/hei-verden/",
+     "published": "2022-11-13T14:53:14+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "982793378",
+    "name": "ALASKASVINGEN BORETTSLAG",
+    "field": "related_website",
+    "family": "related_website",
+    "value": {
+     "url": "https://www.bonord.no/",
+     "title": "Bonord",
+     "relationship": "registry-linked site of a manager, parent or group company"
+    },
+    "result": "verified",
+    "orgnr": false,
+    "proof": "registry e-mail address appears on the site",
+    "gate": "related_or_uncertain",
+    "title": "Bonord"
+   },
+   {
+    "organisation_number": "989244388",
+    "name": "PERSONALOMSORG AS",
+    "field": "social_profile.facebook",
+    "family": "social_profile",
+    "value": "https://facebook.com/personalomsorg",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "821219272",
+    "name": "VILLBRYGG AS",
+    "field": "social_profile.instagram",
+    "family": "social_profile",
+    "value": "https://instagram.com/villbrygg",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "936290078",
+    "name": "MALANGEN VETERINÆRKONTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Hundefôr og kattemat",
+     "url": "https://malvet.no/dog-food/",
+     "published": "2022-11-14T15:42:00+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Hallmonitor – Automatisk telling av aktivitet og utnyttelse for alle typer idretts- og aktivitetsflater",
+     "url": "https://tebe-sport.no/hallmonitor-automatisk-telling-av-aktivitet-og-utnyttelse-for-alle-typer-idretts-og-aktivitetsflater/",
+     "published": "2025-03-28T03:36:12+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "891549202",
+    "name": "TREDJE BOLIGSEKTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Selvbygger",
+     "url": "https://www.hellvikhage.no/post/selvbygger",
+     "published": "2023-08-01T16:31:12.781Z"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "936290078",
+    "name": "MALANGEN VETERINÆRKONTOR AS",
+    "field": "job_posting",
+    "family": "job_posting",
+    "value": {
+     "title": "Veterinær søkes til privat smådyrklinikk",
+     "url": "https://arbeidsplassen.nav.no/stillinger/stilling/ff651cd0-a816-4ce3-bc04-383cf81712ad",
+     "published": "2026-10-08T10:42:22.000Z",
+     "expires": "2026-11-08T23:00:00.000Z",
+     "work_locations": [
+      {
+       "city": "MEISTERVIK",
+       "municipal": "BALSFJORD",
+       "county": "TROMS",
+       "postalCode": "9055",
+       "country": "NORGE"
+      }
+     ],
+     "employer_orgnr": "936393209"
+    },
+    "result": "verified",
+    "note": "ad page is live"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Explora los juegos de casino en 1xBet Venezuela y sus increíbles bonos",
+     "url": "https://www.lumisafe.no/2026/10/08/explora-los-juegos-de-casino-en-1xbet-venezuela-y-sus-increibles-bonos/",
+     "published": "2026-10-08T14:56:45+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "936560059",
+    "name": "EMELINE AS",
+    "field": "social_profile.tiktok",
+    "family": "social_profile",
+    "value": "https://tiktok.com/@emeline.essentials",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Spela på Bästa spelbolag 10 euro utan svensk licens 2026 SE: Så maximerar du",
+     "url": "https://www.lumisafe.no/2026/10/09/spela-pa-basta-spelbolag-10-euro-utan-svensk-licens-2026-se-sa-maximerar-du/",
+     "published": "2026-10-09T15:23:40+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Effektiv løsning for å beholde gresset og bytte ifyllet",
+     "url": "https://tebe-sport.no/effektiv-losning-for-a-beholde-gresset-og-bytte-ifyllet/",
+     "published": "2025-03-28T03:29:43+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Kasyna bez weryfikacji w 2026: jakie płatności kryptowalutowe są dostępne?",
+     "url": "https://www.lumisafe.no/2026/10/09/kasyna-bez-weryfikacji-w-2026-jakie-platnosci-kryptowalutowe-sa-dostepne/",
+     "published": "2026-10-09T11:53:41+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Etablering av TeBe Sport Ålgård",
+     "url": "https://tebe-sport.no/etablering-av-tebe-sport-algard/",
+     "published": "2025-03-28T03:30:39+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "891549202",
+    "name": "TREDJE BOLIGSEKTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Beliggenhet",
+     "url": "https://www.hellvikhage.no/post/beliggenhet",
+     "published": "2023-08-01T16:32:10.657Z"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "De mest populære casinospillene i 2026: hva du bør prøve nå",
+     "url": "https://www.lumisafe.no/2026/10/08/de-mest-populaere-casinospillene-i-2026-hva-du-br-prve-na/",
+     "published": "2026-10-08T11:38:13+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "984324219",
+    "name": "ARCTIC BLUE AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://arcticblue.as/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": "registry e-mail address appears on the site",
+    "gate": "exact",
+    "title": "Arctic Blue – Purity is excellence"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "De top spellen van LuckyGem Casino: waar je kunt spelen en winnen",
+     "url": "https://www.lumisafe.no/2026/10/09/de-top-spellen-van-luckygem-casino-waar-je-kunt-spelen-en-winnen/",
+     "published": "2026-10-09T13:51:27+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "990956960",
+    "name": "AUDIOLAND AS",
+    "field": "social_profile.x",
+    "family": "social_profile",
+    "value": "https://x.com/AudiolandAlta",
+    "result": "verified",
+    "note": "recorded against the organisation number in Wikidata"
+   },
+   {
+    "organisation_number": "936290078",
+    "name": "MALANGEN VETERINÆRKONTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Produkter til hud og pels",
+     "url": "https://malvet.no/spesialistsjampoer-og-hudbehandlinger/",
+     "published": "2022-11-12T22:57:40+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://www.lumisafe.no/",
+    "result": "verified",
+    "note": "declared for this organisation number; domain spells the legal name",
+    "title": "Dyrebutikk på nett | Lumisafe.no"
+   },
+   {
+    "organisation_number": "936290078",
+    "name": "MALANGEN VETERINÆRKONTOR AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Halsbånd og bånd",
+     "url": "https://malvet.no/halsband-og-band/",
+     "published": "2022-10-27T22:20:37+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "997820347",
+    "name": "OV IMPORT AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://ovimport.no/",
+    "result": "verified",
+    "orgnr": true,
+    "proof": null,
+    "gate": "exact",
+    "title": "Stoler til bedehus, menighetshus, kirker og konferansestoler"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Nytt lim for effektiv reparasjon og liming av kunstgress uavhengig av temperatur og værforhold",
+     "url": "https://tebe-sport.no/nytt-lim-for-effektiv-reparasjon-og-liming-av-kunstgress-uavhengig-av-temperatur-og-vaerforhold/",
+     "published": "2025-03-28T03:35:08+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "990956960",
+    "name": "AUDIOLAND AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://audioland.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": "registry e-mail address appears on the site",
+    "gate": "exact",
+    "title": "Audioland - Audioland"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://tebe-sport.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "Hjem - Tebe sport"
+   },
+   {
+    "organisation_number": "919058617",
+    "name": "GLÅME AS",
+    "field": "social_profile.facebook",
+    "family": "social_profile",
+    "value": "https://facebook.com/glaame.no",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "916897820",
+    "name": "I TRONSMO AS",
+    "field": "social_profile.facebook",
+    "family": "social_profile",
+    "value": "https://facebook.com/tronsmo.bokhandel",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "821219272",
+    "name": "VILLBRYGG AS",
+    "field": "social_profile.facebook",
+    "family": "social_profile",
+    "value": "https://facebook.com/villbrygg",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "989244388",
+    "name": "PERSONALOMSORG AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Nå skjerpes arbeidsmiljøloven – men hva er egentlig psykososialt arbeidsmiljø?",
+     "url": "https://personalomsorg.no/na-skjerpes-arbeidsmiljoloven-men-hva-er-egentlig-psykososialt-arbeidsmiljo-0",
+     "published": "2025-09-29T10:59:00+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "971275685",
+    "name": "AAMODTHAGEN BOLIGSAMEIE",
+    "field": "related_website",
+    "family": "related_website",
+    "value": {
+     "url": "https://www.usbl.no/",
+     "title": "Boligbyggelag, forretningsfører og boligutvikler | Usbl",
+     "relationship": "registry-linked site of a manager, parent or group company"
+    },
+    "result": "verified",
+    "note": "reachable; still not presented as this company's own site"
+   },
+   {
+    "organisation_number": "990956960",
+    "name": "AUDIOLAND AS",
+    "field": "social_profile.youtube",
+    "family": "social_profile",
+    "value": "https://youtube.com/channel/UCCcVxwSaTkRNM3mGsZYMI7w",
+    "result": "verified",
+    "note": "still linked from the verified site"
+   },
+   {
+    "organisation_number": "934339924",
+    "name": "YOB AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Varmtvannsbereder uten sluk: slik ble ett trykkstøt til 626 000 kr | YOB",
+     "url": "https://yob.no/artikler/varmtvannsbereder-uten-sluk/",
+     "published": "2026-09-07"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "988131709",
+    "name": "TEBE SPORT AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "Gjør om gammelt kunstgress til kule fallunderlag!",
+     "url": "https://tebe-sport.no/gjor-om-gammelt-kunstgress-til-kule-fallunderlag/",
+     "published": "2025-03-28T03:32:50+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   },
+   {
+    "organisation_number": "994243101",
+    "name": "FORUS ATRIUM AS",
+    "field": "official_website",
+    "family": "official_website",
+    "value": "https://forusatrium.no/",
+    "result": "verified",
+    "orgnr": false,
+    "proof": null,
+    "gate": "exact",
+    "title": "Forus Atrium"
+   },
+   {
+    "organisation_number": "925513105",
+    "name": "LUMISAFE AS",
+    "field": "public_post",
+    "family": "public_post",
+    "value": {
+     "title": "1win Casino: reseña de los juegos más populares y su emocionante oferta",
+     "url": "https://www.lumisafe.no/2026/10/08/1win-casino-resena-de-los-juegos-mas-populares-y-su-emocionante-oferta/",
+     "published": "2026-10-08T08:07:17+00:00"
+    },
+    "result": "verified",
+    "note": "page is live"
+   }
+  ]
+ }
+}

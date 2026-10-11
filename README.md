@@ -11,6 +11,8 @@
 make run BATCH=path/to/companies.jsonl
 ```
 
+**100-company smoke test:** output, run report, live re-audit (60 of 60 claims reproduce) and report page in [`smoke-test/`](smoke-test/).
+
 `BATCH` is a JSONL/JSON/text list of organisation numbers. `make run` installs pinned dependencies
 (`uv sync --frozen`, Python 3.12), downloads the Brønnøysund bulk snapshot if it is missing, and writes
 one terminal envelope per input to `out/<run-id>-envelopes.jsonl`, plus profiles and a run report.
