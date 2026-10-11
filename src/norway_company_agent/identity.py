@@ -60,9 +60,15 @@ def assess_website_identity(profile: dict[str, Any]) -> dict[str, Any]:
     overlap = sorted(set(core) & candidate_tokens)
     ratio = len(overlap) / len(set(core)) if core else 0.0
     reasons = []
+    # Only phrases that are about the domain itself. Matching the page body for something like "til salgs"
+    # flags legitimate sites that happen to sell things (an estate agent, a car dealer), which cost 27% of the
+    # published websites when it was tried.
     parked_markers = (
-        "domain is for sale", "domain for sale", "hugedomains", "parked at", "miss hosting",
-        "her flytter snart en ny gjest", "has been informing visitors",
+        "domain is for sale", "domain for sale", "this domain is for sale", "buy this domain",
+        "hugedomains", "brandbucket", "undeveloped.com", "afternic", "sedo.com", "parkingcrew",
+        "parked at", "parked with", "parked by", "is parked", "domain parking", "domeneparkering",
+        "dette domenet", "domenet er til salgs", "domene er til salgs",
+        "miss hosting", "her flytter snart en ny gjest", "has been informing visitors",
         "find the best information and most relevant links on all topics related to",
     )
     normalized_raw = unicodedata.normalize("NFKD", candidate_text).encode("ascii", "ignore").decode().casefold()
