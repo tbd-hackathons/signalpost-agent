@@ -97,11 +97,16 @@ def main() -> None:
         for future in as_completed(futures):
             uuid = futures[future]
             try:
-                summary = ad_summary(future.result(), utc_now())
+                detail = future.result()
+                summary = ad_summary(detail, utc_now())
             except Exception:
                 failed += 1
                 continue
             done += 1
+            if summary is None and (detail.get("ad_content") or {}):
+                # Read, but NAV holds no employer number (mostly ads imported from other boards): it can never be
+                # matched to an organisation, so it is cached as resolved rather than counted as a gap.
+                summary = {"uuid": uuid, "status": detail.get("status"), "employer_orgnr": None, "no_employer_number": True}
             if summary:
                 summary["feed_modified"] = active[uuid]["modified"]
                 details[uuid] = summary
@@ -111,7 +116,7 @@ def main() -> None:
                 print(f"details {done}/{len(todo)} failed={failed} {time.monotonic() - started:.0f}s", flush=True)
 
     today = datetime.now(timezone.utc).date()
-    rows = [details[uuid] for uuid in active if uuid in details
+    rows = [details[uuid] for uuid in active if uuid in details and details[uuid].get("employer_orgnr")
             and details[uuid].get("status") == "ACTIVE" and not _expired(details[uuid], today)]
     tmp = cache / "active-ads.jsonl.gz.tmp"
     with gzip.open(tmp, "wt", encoding="utf-8") as handle:
@@ -120,6 +125,7 @@ def main() -> None:
     tmp.replace(cache / "active-ads.jsonl.gz")
     missing = sum(1 for uuid in active if uuid not in details)
     meta = {"built_at": utc_now(), "source": SITEMAP, "sitemap_ads": len(active), "ads_without_details": missing,
+            "ads_without_employer_number": sum(1 for uuid in active if (details.get(uuid) or {}).get("no_employer_number")),
             # Complete only when at most 1% of live ads lack details; otherwise "no jobs" can never be asserted.
             "partial": missing > max(10, len(active) // 100), "feed_next_url": cursor,
             "active_ads": len(rows), "employers": len({row["employer_orgnr"] for row in rows}),
