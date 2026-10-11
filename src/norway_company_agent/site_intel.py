@@ -29,7 +29,7 @@ import tldextract
 from bs4 import BeautifulSoup
 
 from .evidence import utc_now
-from .website import SAFE_OPENER, USER_AGENT, assert_public_url
+from .website import USER_AGENT, assert_public_url, open_with_retry
 
 CAREER_TERMS = ("karriere", "ledige-stillinger", "ledige stillinger", "stillinger", "jobb", "career", "jobs",
                 "vacanc", "work-with-us", "rekruttering")
@@ -74,7 +74,7 @@ class SiteFetcher:
         started = time.monotonic()
         request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
         self.requests += 1
-        with SAFE_OPENER.open(request, timeout=self.timeout) as response:
+        with open_with_retry(request, timeout=self.timeout) as response:
             raw = response.read(self.max_bytes + 1)
             final_url, ctype = response.geturl(), response.headers.get("content-type", "")
         self.latencies_ms.append(int((time.monotonic() - started) * 1000))

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import http.client
 import ipaddress
 import re
 import socket
+import ssl
 import threading
 import time
 import urllib.error
@@ -92,6 +94,46 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 SAFE_OPENER = urllib.request.build_opener(SafeRedirectHandler())
 
+# TLS and connection failures that say "try again", as distinct from a certificate that is genuinely wrong.
+TRANSIENT_SSL_MARKERS = (
+    "UNEXPECTED_EOF_WHILE_READING", "TLSV1_ALERT_INTERNAL_ERROR", "APPLICATION_DATA_AFTER_CLOSE_NOTIFY",
+    "EOF_OCCURRED_IN_VIOLATION_OF_PROTOCOL", "WRONG_VERSION_NUMBER", "SSLV3_ALERT",
+)
+
+
+def is_transient(exc: BaseException) -> bool:
+    """Does this failure mean "try again" rather than "this site is not for you"?
+
+    A batch run pulls connection resets and TLS resets out of busy or slow servers. Treating those as final
+    drops live sites, understates coverage, and makes two runs of the same snapshot disagree. A certificate
+    that does not verify is permanent, so it is deliberately never retried.
+    """
+    if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, TimeoutError, socket.timeout)):
+        return True
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code == 429 or 500 <= exc.code < 600
+    if isinstance(exc, ssl.SSLCertVerificationError):
+        return False
+    if isinstance(exc, ssl.SSLError):
+        return any(marker in str(exc) for marker in TRANSIENT_SSL_MARKERS)
+    if isinstance(exc, urllib.error.URLError):
+        return exc.reason is not None and is_transient(exc.reason)
+    if isinstance(exc, http.client.HTTPException):
+        return True
+    return False
+
+
+def open_with_retry(request: urllib.request.Request, *, timeout: float, attempts: int = 3):
+    """Open a request, retrying only the transient failures that a busy run provokes."""
+    for attempt in range(attempts):
+        try:
+            return SAFE_OPENER.open(request, timeout=timeout)
+        except Exception as exc:
+            if attempt == attempts - 1 or not is_transient(exc):
+                raise
+            time.sleep(0.3 * (attempt + 1))
+    raise RuntimeError("unreachable")
+
 
 def normalize_homepage(value: str | None) -> str | None:
     value = str(value or "").strip()
@@ -119,7 +161,7 @@ def _robots_allowed(url: str, timeout: float) -> bool:
     parser.set_url(robots_url)
     try:
         request = urllib.request.Request(robots_url, headers={"User-Agent": USER_AGENT})
-        with SAFE_OPENER.open(request, timeout=timeout) as response:
+        with open_with_retry(request, timeout=timeout) as response:
             parser.parse(response.read().decode("utf-8", errors="replace").splitlines())
         return parser.can_fetch(USER_AGENT, url)
     except Exception:
@@ -254,7 +296,7 @@ def _fetch_secondary_page(url: str, *, homepage_domain: str, timeout: float, max
     started = time.monotonic()
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"})
     try:
-        with SAFE_OPENER.open(request, timeout=timeout) as response:
+        with open_with_retry(request, timeout=timeout) as response:
             raw = response.read(max_bytes + 1)
             elapsed = int((time.monotonic() - started) * 1000)
             final_url = response.geturl()
@@ -314,7 +356,7 @@ def fetch_website(url: str | None, *, timeout: float = 15.0, max_bytes: int = 2_
     started = time.monotonic()
     request = urllib.request.Request(normalized, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"})
     try:
-        with SAFE_OPENER.open(request, timeout=timeout) as response:
+        with open_with_retry(request, timeout=timeout) as response:
             content_type = response.headers.get("content-type", "")
             raw = response.read(max_bytes + 1)
             elapsed = int((time.monotonic() - started) * 1000)
