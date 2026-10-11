@@ -75,7 +75,10 @@ submission scored on precision, so the model stays off in our runs. The test is 
 ## Cost to run
 
 No paid APIs and no model calls in this version: third-party cost per official run is US$0.
-Measured on 100 random companies: ~5 minutes, ~750 outbound requests.
+Measured on the full 1,000-company batch (run `v9b`, 11 Oct 2026, one MacBook Air M1, default settings):
+36 minutes, 11,847 outbound requests, 448 MB downloaded, median request 1.1 s (p95 2.8 s).
+The job-ad index (`make nav-index`, ~13,500 public ad pages at one page per 1.5 s) is built once beforehand
+and reused; the TED snapshot ships in `data/`.
 
 ## Scorecard
 
