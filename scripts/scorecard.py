@@ -42,6 +42,7 @@ from norway_company_agent.website import fetch_website  # noqa: E402
 # The external field families the challenge scores, in the order the report shows them.
 FAMILIES: list[tuple[str, str]] = [
     ("official_website", "Verified website"),
+    ("related_website", "Registry-linked related site"),
     ("social_profile", "Company-owned profiles"),
     ("job_posting", "Job ads"),
     ("public_post", "Dated posts on the own site"),

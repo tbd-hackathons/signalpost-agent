@@ -75,10 +75,49 @@ submission scored on precision, so the model stays off in our runs. The test is 
 ## Cost to run
 
 No paid APIs and no model calls in this version: third-party cost per official run is US$0.
-Measured on the full 1,000-company batch (run `v9b`, 11 Oct 2026, one 16 GB M1 Mac, default settings):
-36 minutes, 11,847 outbound requests, 448 MB downloaded, median request 1.1 s (p95 2.8 s).
-The job-ad index (`make nav-index`, ~13,500 public ad pages at one page per 1.5 s) is built once beforehand
-and reused; the TED snapshot ships in `data/`.
+Measured on the full 1,000-company batch (11 Oct 2026, one 16 GB M1 Mac, default settings): 36–45 minutes
+and ~11,900 outbound requests. The job-ad index (`make nav-index`, ~13,500 public ad pages at one page per
+1.5 s) is built once beforehand and reused; the TED snapshot ships in `data/`.
+
+## Measured results
+
+On the 1,000-company public batch (`data-cache/test-1000.jsonl`, run `final`), every input returning exactly
+one terminal envelope with all five validation checks passing:
+
+| Family | Companies covered | Facts published |
+|---|---|---|
+| Verified website | 117 (11.7%) | 117 |
+| Registry-linked related site | 47 (4.7%) | 47 |
+| Company-owned profiles | 57 (5.7%) | 119 |
+| Dated posts on the own site | 31 (3.1%) | 165 |
+| Job ads | 5 (0.5%) | 12 |
+| Public tenders | 10 (1.0%) | 12 |
+| News articles | 0 | 0 |
+
+472 published claims. **164 companies (16.4%) get a website**, either verified as their own or labelled as a
+related manager, parent or group site.
+
+A live re-audit re-fetched a seeded sample of 100 published claims and re-ran the same identity gate on the
+fresh page: **100 of 100 still hold**, in every family (`scripts/scorecard.py --audit 100`).
+
+**Recall against the register.** The public universe file states a website for 20 of the 100 smoke-test
+companies. The agent publishes 19 of those 20 — 10 as verified own sites and 9 as labelled related sites. The
+one it misses is a host that refuses connections to any client.
+
+### What this batch can and cannot yield
+
+Stated plainly, because it bounds what any agent can score here:
+
+- **748 of 1,000 companies** have no website and no usable e-mail domain in the registry. 715 have a
+  name-derived domain that resolves, but only about **16% of those** survive the identity gate.
+- **NAV job ads: 0 of 6,354** fetched ads match this batch. **TED notices: 10 of 1,000.** These are micro,
+  holding and property companies; the organisation-number-keyed sources hold almost nothing on them.
+- **News is empty by construction.** Only 152 companies have five or more employees, and sampling GDELT
+  returned unrelated articles that fail the identity check.
+
+A search API is the one remaining route to the 748 silent companies. Its client is already built
+(`search_client.py`, `search-rs/`) and activates when a key is present; without one those fields report
+`failed`, not zero.
 
 ## Scorecard
 
