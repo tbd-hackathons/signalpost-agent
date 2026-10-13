@@ -1,7 +1,7 @@
 {
   "run_id": "smoke-100",
-  "started_at": "2026-10-11T13:10:47.000462Z",
-  "completed_at": "2026-10-11T13:30:25.480807Z",
+  "started_at": "2026-10-13T04:38:47.553257Z",
+  "completed_at": "2026-10-13T04:55:04.386529Z",
   "expected_count": 100,
   "emitted_envelopes": 100,
   "resumed_profiles": 0,
@@ -27,8 +27,8 @@
     "selected": 100
   },
   "operations": {
-    "requests": 1396,
-    "bytes": 49193145,
+    "requests": 1372,
+    "bytes": 43544913,
     "search": {
       "bad_input": 0,
       "by_provider": {
@@ -65,16 +65,16 @@
       "requests": 0
     },
     "third_party_cost_usd": 0.0,
-    "p50_ms": 903,
-    "p95_ms": 4122
+    "p50_ms": 945,
+    "p95_ms": 45915
   },
   "local_model": null,
   "nav_jobs": {
     "index_built_at": "2026-10-11T04:21:26.842882Z",
     "catch_up": {
-      "pages": 1,
-      "new_active": 134,
-      "dropped_inactive": 445
+      "pages": 5,
+      "new_active": 1049,
+      "dropped_inactive": 1840
     }
   },
   "validation": {
