@@ -1,4 +1,32 @@
-"""Measure the full-name .no proof on exactly the companies it can affect."""
+"""Measure the full-name .no proof on exactly the companies it can affect.
+
+WHY THIS EXISTS: the full-name proof (f24dab1) changes the outcome for one narrow population — companies
+whose candidate list contained a rejected attempt on a domain spelling their complete legal name — so it can
+be measured directly instead of through an hour-long full run. The filter below reproduces that population.
+
+RESULT AT f24dab1: 27 of 145 newly publishable, 25 on the complete-legal-name proof. **That number was
+wrong and was retracted.** Claude replayed it on the v10 partial run and found three of the accepted sites
+belonged to different companies: HAUKSTAD AS (Skien) resolved to haukstad.no, which is Haukstad Gård in
+Løten; AS FELLESBYGG resolved to fellesbygg.no, which is Borettslaget Fellesbygg; GUMMISERVICE AS (Larvik)
+resolved to gummiservice.no, which is Gummiservice Produksjon AS in Østfold. A one-word legal name is shared
+by many unrelated entities, and a page that states that one word proves nothing about which entity it is.
+The fix (5a1ff8c, Claude) requires the registered street, postcode or town on the site when the legal name
+is a single word.
+
+RESULT AT bf35dba, after that fix: **14 of 145**, 12 on the full-name proof. Hand-checked four of them —
+troycapital.no ("Troy Capital | Investment and holding company"), bjaroykapital.no ("Bjarøy Kapital AS –
+Investeringer for fremtiden"), plastron.no ("AS Plastron") and salesmojo.no (meta description "Sales Mojo AS
+til byr B2B salgskurs") — all correct. The v11 run puts verified websites at 130 against 117 in `final`,
+which agrees: about +13, the same order as this measurement.
+
+LESSON, worth re-reading before trusting any coverage number on this project: a gain measured on the
+population a change can affect is only as good as the identity check inside that change. I reported 27 and
+wrote "every one is correct" without hand-checking the one-word names, and the inflated figure reached the
+builder before anyone caught it. Where a proof rule is new, check the accepted set by hand before quoting a
+count.
+
+Usage: .venv/bin/python scripts/measure_fullname_proof.py   # writes out/mine/website-gain.json
+"""
 import json, re, sys, collections
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, 'src')
@@ -38,7 +66,7 @@ def again(p):
                 'proof': f'{type(exc).__name__}: {exc}'}
 
 out = []
-with ThreadPoolExecutor(max_workers=8) as pool:
+with ThreadPoolExecutor(max_workers=4) as pool:
     for r in pool.map(again, targets): out.append(r)
 newly = [r for r in out if r['ok']]
 by = collections.Counter('full-name .no proof' if 'complete legal name' in r['proof'] else r['proof'][:34] or 'other' for r in newly)
