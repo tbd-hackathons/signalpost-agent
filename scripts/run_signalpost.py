@@ -151,14 +151,19 @@ def main() -> None:
         state = {
             item["organisation_number"]: item
             for item in prior
-            if profile_complete_for_modules(item, requested_modules)
+            # The search pass runs after every company's first pass, so a run stopped in between keeps its
+            # first-pass profiles and only repeats the search pass for them.
+            if profile_complete_for_modules(item, [m for m in requested_modules if m != "search"])
         }
         resumed_profiles = len(state)
     pending_profiles = [profile for profile in profiles if profile["organisation_number"] not in state]
+    search_pending = [profile for profile in profiles if profile["organisation_number"] not in state
+                      or not profile_complete_for_modules(state[profile["organisation_number"]], ["search"])]
     search_batch = None
     if "search" in requested_modules:
         # News search is paced by its provider (GDELT: one request per 5.5 s), so the largest employers go first.
-        by_size = sorted(pending_profiles, key=lambda p: -(p.get("employees") or 0))
+        by_size = sorted([state.get(p["organisation_number"], p) for p in search_pending],
+                         key=lambda p: -(p.get("employees") or 0))
         news_orgs = {p["organisation_number"] for p in by_size
                      if (p.get("employees") or 0) >= args.news_min_employees}
         news_orgs = set([p["organisation_number"] for p in by_size if p["organisation_number"] in news_orgs][: args.max_news_queries])
@@ -228,7 +233,7 @@ def main() -> None:
 
     if search_batch is not None:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            for profile, metric in pool.map(search_pass, [state[p["organisation_number"]] for p in pending_profiles]):
+            for profile, metric in pool.map(search_pass, [state[p["organisation_number"]] for p in search_pending]):
                 state[profile["organisation_number"]] = profile
                 operations["requests"] += metric["requests"]
                 operations["bytes"] += metric["bytes"]
