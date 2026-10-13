@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import http.client
 import time
 import urllib.error
 import urllib.request
@@ -42,11 +43,15 @@ def fetch_json(url: str, *, timeout: float = 20.0, attempts: int = 3) -> FetchRe
                 return FetchResult(url, response.status, elapsed, len(raw), json.loads(raw), content_sha256=hashlib.sha256(raw).hexdigest(), retrieved_at=_utc_now())
         except urllib.error.HTTPError as exc:
             elapsed = int((time.monotonic() - started) * 1000)
-            raw = exc.read()
+            try:
+                raw = exc.read()
+            except (http.client.HTTPException, OSError):
+                raw = b""
             if exc.code in {404, 410}:
                 return FetchResult(url, exc.code, elapsed, len(raw), error=f"HTTP {exc.code}", content_sha256=hashlib.sha256(raw).hexdigest(), retrieved_at=_utc_now())
             last_error = f"HTTP {exc.code}"
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        # A connection dropped mid-reply raises http.client/OSError errors that urllib does not wrap in URLError.
+        except (urllib.error.URLError, http.client.HTTPException, OSError, json.JSONDecodeError) as exc:
             last_error = type(exc).__name__
         if attempt + 1 < attempts:
             time.sleep(0.4 * (2**attempt))

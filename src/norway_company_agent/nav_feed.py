@@ -5,6 +5,7 @@ kept in memory only, and refreshed when NAV rejects it.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import time
@@ -46,7 +47,7 @@ class NavFeed:
                     self._refresh_token()
                 if attempt == retries - 1:
                     raise
-            except (urllib.error.URLError, TimeoutError):
+            except (urllib.error.URLError, http.client.HTTPException, OSError):
                 if attempt == retries - 1:
                     raise
             time.sleep(backoff * (attempt + 1))

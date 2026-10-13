@@ -141,6 +141,24 @@ def main() -> None:
         profile["run_metrics"] = metric
         return profile, metric
 
+    company_errors: list[dict] = []
+
+    def guarded(step, modules: list[str]):
+        """One company's unexpected error must not stop the batch: the modules it did not finish become
+        `source_error` (a terminal, reported state) and the error is listed in the run report."""
+        def run(profile: dict) -> tuple[dict, dict]:
+            try:
+                return step(profile)
+            except Exception as exc:  # noqa: BLE001 - recorded below, never swallowed silently
+                note = f"{step.__name__} stopped on {type(exc).__name__}: {str(exc)[:160]}"
+                company_errors.append({"organisation_number": profile["organisation_number"], "error": note})
+                for module in modules:
+                    record = profile["evidence"].get(module)
+                    if not record or record.get("status") == "not_fetched":
+                        profile["evidence"][module] = evidence(module, "source_error", "run_step", "about:run", note=note)
+                return profile, {"requests": 0, "bytes": 0, "latencies_ms": []}
+        return run
+
     state: dict[str, dict] = {}
     resumed_profiles = 0
     profiles_output = Path(args.profiles_output)
@@ -220,7 +238,7 @@ def main() -> None:
         return profile, metric
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(enrich, profile): profile["organisation_number"] for profile in pending_profiles}
+        futures = {pool.submit(guarded(enrich, [m for m in requested_modules if m != "search"]), profile): profile["organisation_number"] for profile in pending_profiles}
         for index, future in enumerate(as_completed(futures), 1):
             profile, metric = future.result()
             state[profile["organisation_number"]] = profile
@@ -233,7 +251,7 @@ def main() -> None:
 
     if search_batch is not None:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            for profile, metric in pool.map(search_pass, [state[p["organisation_number"]] for p in search_pending]):
+            for profile, metric in pool.map(guarded(search_pass, ["search"]), [state[p["organisation_number"]] for p in search_pending]):
                 state[profile["organisation_number"]] = profile
                 operations["requests"] += metric["requests"]
                 operations["bytes"] += metric["bytes"]
@@ -272,6 +290,7 @@ def main() -> None:
         "expected_count": args.expected_count,
         "emitted_envelopes": len(envelopes),
         "resumed_profiles": resumed_profiles,
+        "company_errors": company_errors,
         "profiles_fetched_this_run": len(pending_profiles),
         "modules": requested_modules,
         "registry": registry_metadata,
