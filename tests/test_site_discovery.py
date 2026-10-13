@@ -296,3 +296,26 @@ def test_full_name_domain_proof_accepts_only_complete_names_on_dot_no():
     # The domain matches but the page never states the full name: rejected.
     silent = {"final_url": "https://namsenfjellservice.no/", "title": "Fjellservice i Trøndelag"}
     assert _full_name_domain_proof(p, silent, {"url": "https://namsenfjellservice.no/"}) is None
+
+
+def test_one_word_legal_name_needs_the_registered_place_too():
+    """v10 published haukstad.no (Haukstad Gård, Løten) for HAUKSTAD AS (Skien) and fellesbygg.no
+    (Borettslaget Fellesbygg) for AS FELLESBYGG: a one-word legal name is shared by many entities, so a
+    domain spelling it proves nothing without the company's registered place on the site."""
+    from norway_company_agent.site_discovery import _full_name_domain_proof
+
+    p = profile(name="HAUKSTAD AS", **{"forretningsadresse.poststed": "SKIEN", "forretningsadresse.kommune": "SKIEN",
+                                       "forretningsadresse.adresse": "Fjellveien 1"})
+    farm = {"final_url": "https://haukstad.no/", "title": "Haukstad Gård – Settepoteter fra Løten",
+            "identity_text_excerpt": "Haukstad AS driver gården på Løten."}
+    assert _full_name_domain_proof(p, farm, {"url": "https://haukstad.no/"}) is None
+    local = {**farm, "identity_text_excerpt": "Haukstad AS, Fjellveien 1, 3700 Skien."}
+    assert _full_name_domain_proof(p, local, {"url": "https://haukstad.no/"})
+
+
+def test_multi_word_legal_name_keeps_the_full_name_proof():
+    from norway_company_agent.site_discovery import _full_name_domain_proof
+
+    p = profile(name="SVELVIK UTVIKLING AS", **{"forretningsadresse.poststed": "DRAMMEN"})
+    page = {"final_url": "https://svelvikutvikling.no/", "title": "Svelvik Utvikling AS"}
+    assert _full_name_domain_proof(p, page, {"url": "https://svelvikutvikling.no/"})

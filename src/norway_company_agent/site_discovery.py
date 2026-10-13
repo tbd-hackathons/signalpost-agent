@@ -161,6 +161,16 @@ def _full_name_domain_proof(profile: dict[str, Any], value: dict[str, Any], cand
                    for key in ("title", "description", "identity_text_excerpt"))
     if joined not in page and joined.replace("aa", "a") not in page:
         return None
+    if len(name_tokens(profile.get("name") or "")) < 2:
+        # A one-word legal name is shared by many entities (HAUKSTAD AS in Skien vs Haukstad Gård in Løten;
+        # AS FELLESBYGG vs Borettslaget Fellesbygg), so the domain and page saying it prove nothing on their
+        # own: the company's registered street, postcode or town has to be on the site as well.
+        text = " ".join(str(value.get(key) or "") for key in
+                        ("title", "description", "identity_text_excerpt", "main_text_excerpt"))
+        place = place_proof(profile, text)
+        if not place:
+            return None
+        return f"the .no domain spells the company's complete one-word legal name '{joined}', and {place}"
     return f"the .no domain spells the company's complete legal name '{joined}' and the site states it"
 
 
