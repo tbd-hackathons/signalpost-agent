@@ -1,9 +1,9 @@
 {
- "run_id": "smoke-100",
- "envelopes": "out/smoke-100-envelopes.jsonl",
+ "run_id": "smoke-v2",
+ "envelopes": "out/smoke-v2-envelopes.jsonl",
  "companies": 100,
  "available_claims": 82,
- "failed_claims": 108,
+ "failed_claims": 109,
  "website_company_rate": 0.2,
  "coverage": {
   "official_website": {
@@ -35,10 +35,10 @@
    "claims_available": 20,
    "states": {
     "available": 20,
-    "not_available": 45,
+    "not_available": 44,
     "blocked": 6,
     "ambiguous": 6,
-    "failed": 23
+    "failed": 24
    }
   },
   "related_website": {
@@ -135,7 +135,7 @@
   },
   "attempts": {
    "registry_website": 20,
-   "legal_name_domain_guess": 144,
+   "legal_name_domain_guess": 143,
    "registry_email_domain": 4,
    "registry_email_domain_shared": 5
   },
@@ -145,10 +145,10 @@
    "registry_email_domain": 1
   },
   "rejection_reasons": {
-   "name match only, no registry proof on the site": 91
+   "name match only, no registry proof on the site": 89
   },
-  "attempts_total": 173,
-  "acceptance_rate": 0.1329479768786127,
+  "attempts_total": 172,
+  "acceptance_rate": 0.13372093023255813,
   "declared_available": {
    "registry website field": 20,
    "neither": 67,
@@ -635,9 +635,9 @@
     "field": "public_post",
     "family": "public_post",
     "value": {
-     "title": "De top spellen van LuckyGem Casino: waar je kunt spelen en winnen",
-     "url": "https://www.lumisafe.no/2026/10/09/de-top-spellen-van-luckygem-casino-waar-je-kunt-spelen-en-winnen/",
-     "published": "2026-10-09T13:51:27+00:00"
+     "title": "Online casino mobile app review: seamless gameplay for on-the-go players",
+     "url": "https://www.lumisafe.no/2026/10/13/online-casino-mobile-app-review-seamless-gameplay-for-on-the-go-players/",
+     "published": "2026-10-13T07:42:26+00:00"
     },
     "result": "verified",
     "note": "page is live"
@@ -661,9 +661,9 @@
     "field": "public_post",
     "family": "public_post",
     "value": {
-     "title": "Guida ai metodi di deposito e prelievo su Fonbet Italia casino",
-     "url": "https://www.lumisafe.no/2026/10/09/guida-ai-metodi-di-deposito-e-prelievo-su-fonbet-italia-casino/",
-     "published": "2026-10-09T11:10:55+00:00"
+     "title": "Slik unngår du vanlige feil i casino",
+     "url": "https://www.lumisafe.no/2026/10/13/slik-unngar-du-vanlige-feil-i-casino/",
+     "published": "2026-10-13T07:06:39+00:00"
     },
     "result": "verified",
     "note": "page is live"
@@ -725,9 +725,9 @@
     "field": "public_post",
     "family": "public_post",
     "value": {
-     "title": "Kasyna bez weryfikacji w 2026: jakie płatności kryptowalutowe są dostępne?",
-     "url": "https://www.lumisafe.no/2026/10/09/kasyna-bez-weryfikacji-w-2026-jakie-platnosci-kryptowalutowe-sa-dostepne/",
-     "published": "2026-10-09T11:53:41+00:00"
+     "title": "Hvorfor folk elsker å besøke casinoer",
+     "url": "https://www.lumisafe.no/2026/10/13/hvorfor-folk-elsker-a-beske-casinoer/",
+     "published": "2026-10-13T07:07:37+00:00"
     },
     "result": "verified",
     "note": "page is live"
@@ -818,9 +818,9 @@
     "field": "public_post",
     "family": "public_post",
     "value": {
-     "title": "Duelbits Norge bonuser i 2026: Slik maksimerer du gevinstene dine",
-     "url": "https://www.lumisafe.no/2026/10/12/duelbits-norge-bonuser-i-2026-slik-maksimerer-du-gevinstene-dine/",
-     "published": "2026-10-12T08:56:34+00:00"
+     "title": "Los mejores juegos de Pin up casino Chile: descubre slots y mesas en vivo",
+     "url": "https://www.lumisafe.no/2026/10/13/los-mejores-juegos-de-pin-up-casino-chile-descubre-slots-y-mesas-en-vivo/",
+     "published": "2026-10-13T09:58:02+00:00"
     },
     "result": "verified",
     "note": "page is live"
@@ -853,9 +853,9 @@
     "field": "public_post",
     "family": "public_post",
     "value": {
-     "title": "Juega en Casino Drakaris en Línea: las mejores opciones de slots y la experiencia",
-     "url": "https://www.lumisafe.no/2026/10/12/juega-en-casino-drakaris-en-linea-las-mejores-opciones-de-slots-y-la-experiencia/",
-     "published": "2026-10-12T08:20:05+00:00"
+     "title": "Hvordan komme i gang med online casino: en enkel guide for nybegynnere",
+     "url": "https://www.lumisafe.no/2026/10/13/hvordan-komme-i-gang-med-online-casino-en-enkel-guide-for-nybegynnere/",
+     "published": "2026-10-13T09:43:24+00:00"
     },
     "result": "verified",
     "note": "page is live"
@@ -900,9 +900,9 @@
     "field": "public_post",
     "family": "public_post",
     "value": {
-     "title": "TomDorix Casino Österreich: geprüfte Sicherheit, mobile Spielfreude und flexible",
-     "url": "https://www.lumisafe.no/2026/10/12/tomdorix-casino-osterreich-geprufte-sicherheit-mobile-spielfreude-und-flexible/",
-     "published": "2026-10-12T14:36:47+00:00"
+     "title": "Juega seguro en Fun88 Casino: métodos de pago y protección de tu cuenta",
+     "url": "https://www.lumisafe.no/2026/10/13/juega-seguro-en-fun88-casino-metodos-de-pago-y-proteccion-de-tu-cuenta/",
+     "published": "2026-10-13T11:08:23+00:00"
     },
     "result": "verified",
     "note": "page is live"

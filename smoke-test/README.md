@@ -9,9 +9,9 @@ make run BATCH=smoke-test/companies.jsonl
 
 | | |
 |---|---|
-| Code | commit `5a1ff8c` (this folder is the only change after it) |
-| Result | 100 of 100 terminal envelopes; all five validation checks pass (`run-report.json`) |
-| Time and cost | 16 minutes, 1,372 outbound requests, US$0 third-party cost, one 16 GB M1 Mac |
+| Code | commit `bf35dba` (this folder is the only change after it) |
+| Result | 100 of 100 terminal envelopes; all five validation checks pass; no company errors (`run-report.json`) |
+| Time and cost | 16 minutes, 1,355 outbound requests, US$0 third-party cost, one 16 GB M1 Mac |
 | Live re-audit | 60 published claims re-fetched and re-checked against their sources: **60 of 60 reproduce** (`scorecard.json`) |
 | Coverage | verified own website on 20 of 100 companies; 82 published external claims |
 
